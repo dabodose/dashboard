@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Setup Your Dashboard</title>
+  <style>
+    body {
+      background-color: #2E2E2E;
+      color: #FFFFFF;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .setup-container {
+      background-color: #3A3A3A;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      width: 300px;
+    }
+    input[type="text"] {
+      background-color: #4A4A4A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      padding: 8px;
+      width: 80%;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    button {
+      background-color: #00CED1;
+      border: none;
+      color: #FFFFFF;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #00B7C2;
+    }
+    #dashboardLink {
+      margin-top: 20px;
+      display: none;
+    }
+    #dashboardLink a {
+      color: #00CED1;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="setup-container">
+    <h2>Create Your Dashboard</h2>
+    <label for="usernameInput">Enter Your Username:</label>
+    <input type="text" id="usernameInput" placeholder="e.g., john123" required>
+    <button onclick="generateDashboard()">Generate Dashboard</button>
+    <div id="dashboardLink">
+      <p>Your Dashboard is ready!</p>
+      <a id="dashboardUrl" href="">Click here to access your dashboard</a>
+    </div>
+  </div>
+
+  <script>
+    function generateDashboard() {
+      const username = document.getElementById('usernameInput').value.trim();
+      if (!username || username.length < 3) {
+        alert('Please enter a valid username (at least 3 characters).');
+        return;
+      }
+
+      // Generate the dashboard URL with the username as a query parameter
+      const baseUrl = window.location.origin + '/dashboard.html';
+      const dashboardUrl = `${baseUrl}?username=${encodeURIComponent(username)}`;
+
+      // Show the link
+      const linkElement = document.getElementById('dashboardUrl');
+      linkElement.href = dashboardUrl;
+      linkElement.innerText = dashboardUrl;
+      document.getElementById('dashboardLink').style.display = 'block';
+
+      // Optionally: Initialize default data in Firestore for this user
+      // This can be done when the dashboard loads instead
+    }
+  </script>
+</body>
+</html>
