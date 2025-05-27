@@ -375,21 +375,42 @@
         })
         .catch(error => console.error(`Error setting up tab names listener for ${username}:`, error));
 
-      // Load tab data
+      // Load tab data with pre-initialization
       tabs.forEach(tab => {
-        db.collection('users').doc(username).collection('tabs').doc(tab)
-          .onSnapshot(doc => {
-            const data = doc.data();
-            if (data && data.days) {
-              renderTabData(tab, data.days);
-              if (tab === currentTab) {
-                updateCumulative(tab);
-              }
-            } else {
-              db.collection('users').doc(username).collection('tabs').doc(tab).set({ days: defaultDays })
+        db.collection('users').doc(username).collection('tabs').doc(tab).get()
+          .then(doc => {
+            if (!doc.exists) {
+              return db.collection('users').doc(username).collection('tabs').doc(tab)
+                .set({ days: defaultDays })
                 .catch(error => console.error(`Error setting initial data for ${username}/${tab}:`, error));
             }
-          }, error => console.error(`Snapshot error for ${username}/${tab}:`, error));
+          })
+          .then(() => {
+            return db.collection('users').doc(username).collection('tabs').doc(tab)
+              .onSnapshot(doc => {
+                const data = doc.data();
+                if (data && data.days) {
+                  renderTabData(tab, data.days);
+                  if (tab === currentTab) {
+                    updateCumulative(tab);
+                  }
+                } else {
+                  console.warn(`No days data for ${username}/${tab}, using defaults`);
+                  renderTabData(tab, defaultDays);
+                  if (tab === currentTab) {
+                    updateCumulative(tab);
+                  }
+                }
+              }, error => {
+                console.error(`Snapshot error for ${username}/${tab}:`, error);
+                // Fallback to defaults on error
+                renderTabData(tab, defaultDays);
+                if (tab === currentTab) {
+                  updateCumulative(tab);
+                }
+              });
+          })
+          .catch(error => console.error(`Error setting up tab data listener for ${username}/${tab}:`, error));
       });
     } else {
       tabs.forEach(tab => {
