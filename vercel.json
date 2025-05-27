@@ -1,8 +1,8 @@
 {
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/dashboard.html"
-    }
-  ]
-}
+    "rewrites": [
+      {
+        "source": "/(.*)",
+        "destination": "/setup.html"
+      }
+    ]
+  }
