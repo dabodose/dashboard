@@ -242,44 +242,27 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
 
   <script>
-    // Validate and initialize Firebase
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDuD-qTPsc9cBqqNVfO0Ur4wOaZnE4L6Cg",
-  authDomain: "campaigndashboard-e8b96.firebaseapp.com",
-  projectId: "campaigndashboard-e8b96",
-  storageBucket: "campaigndashboard-e8b96.firebasestorage.app",
-  messagingSenderId: "286098174856",
-  appId: "1:286098174856:web:752334f3abbb3c5c31003d"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+    // Initialize Firebase with your config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuD-qTPsc9cBqqNVfO0Ur4wOaZnE4L6Cg",
+      authDomain: "campaigndashboard-e8b96.firebaseapp.com",
+      projectId: "campaigndashboard-e8b96",
+      storageBucket: "campaigndashboard-e8b96.firebasestorage.app",
+      messagingSenderId: "286098174856",
+      appId: "1:286098174856:web:752334f3abbb3c5c31003d"
+    };
 
     let db;
     let isFirebaseInitialized = false;
 
-    // Check if required config fields are present
-    const requiredFields = ['apiKey', 'authDomain', 'projectId', 'appId'];
-    const hasAllFields = requiredFields.every(field => firebaseConfig[field] && firebaseConfig[field] !== "your-" + field);
-    if (!hasAllFields) {
-      console.error("Firebase configuration is incomplete. Please update firebaseConfig with your project settings.");
-      alert("Firebase configuration is missing. The dashboard will load with limited functionality.");
-    } else {
-      try {
-        const app = firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        isFirebaseInitialized = true;
-        console.log("Firebase initialized successfully");
-      } catch (error) {
-        console.error("Firebase initialization error:", error.message);
-        alert(`Failed to initialize Firebase: ${error.message}. The dashboard will load with limited functionality.`);
-      }
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      isFirebaseInitialized = true;
+      console.log("Firebase initialized successfully");
+    } catch (error) {
+      console.error("Firebase initialization error:", error.message);
+      alert(`Failed to initialize Firebase: ${error.message}. The dashboard will load with limited functionality.`);
     }
 
     // Global variables
@@ -324,6 +307,7 @@ const app = initializeApp(firebaseConfig);
       }
       tbody.innerHTML = '';
       days.forEach((day, index) => {
+        const row = document.createElement('tr');
         const onInputHandler = isFirebaseInitialized ? `updateFirestore('${tab}', ${index})` : `updateCumulative('${tab}')`;
         row.innerHTML = `
           <td>${day.date}</td>
