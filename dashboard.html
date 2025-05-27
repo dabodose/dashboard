@@ -254,6 +254,7 @@
 
     let db;
     let isFirebaseInitialized = false;
+    let username;
 
     try {
       const app = firebase.initializeApp(firebaseConfig);
@@ -263,6 +264,13 @@
     } catch (error) {
       console.error("Firebase initialization error:", error.message);
       alert(`Failed to initialize Firebase: ${error.message}. The dashboard will load with limited functionality.`);
+    }
+
+    // Get username from query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    username = urlParams.get('username') || 'defaultUser';
+    if (!urlParams.get('username')) {
+      alert('No username provided. Using defaultUser. Please access this dashboard via the setup page with a username.');
     }
 
     // Global variables
@@ -277,7 +285,8 @@
 
     tabs.forEach(tab => {
       if (isFirebaseInitialized) {
-        db.collection('tabs').doc(tab)
+        // Use user-specific path: /users/{username}/tabs/{tab}
+        db.collection('users').doc(username).collection('tabs').doc(tab)
           .onSnapshot(doc => {
             const data = doc.data();
             if (data && data.days) {
@@ -286,10 +295,11 @@
                 updateCumulative(tab);
               }
             } else {
-              db.collection('tabs').doc(tab).set({ days: defaultDays })
-                .catch(error => console.error(`Error setting initial data for ${tab}:`, error));
+              // Initialize with default data for new users
+              db.collection('users').doc(username).collection('tabs').doc(tab).set({ days: defaultDays })
+                .catch(error => console.error(`Error setting initial data for ${username}/${tab}:`, error));
             }
-          }, error => console.error(`Snapshot error for ${tab}:`, error));
+          }, error => console.error(`Snapshot error for ${username}/${tab}:`, error));
       } else {
         renderTabData(tab, defaultDays);
         if (tab === currentTab) {
@@ -333,7 +343,7 @@
       const showedCalls = parseFloat(document.getElementById(`showedCallsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const totalCost = parseFloat(document.getElementById(`totalCostDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
 
-      db.collection('tabs').doc(tab).get().then(doc => {
+      db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
         if (doc.exists) {
           const days = doc.data().days;
           if (days && days[dayIndex]) {
@@ -346,11 +356,11 @@
               showedCalls,
               totalCost
             };
-            db.collection('tabs').doc(tab).update({ days })
-              .catch(error => console.error(`Firestore update error for ${tab}, day ${dayIndex}:`, error));
+            db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
+              .catch(error => console.error(`Firestore update error for ${username}/${tab}, day ${dayIndex}:`, error));
           }
         }
-      }).catch(error => console.error(`Firestore get error for ${tab}:`, error));
+      }).catch(error => console.error(`Firestore get error for ${username}/${tab}:`, error));
 
       if (tab === currentTab) {
         updateCumulative(tab);
@@ -381,7 +391,7 @@
         return;
       }
 
-      db.collection('tabs').doc(tab).get().then(doc => {
+      db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
         if (doc.exists) {
           const days = doc.data().days || [];
           const lastDate = days.length > 0 ? days[days.length - 1].date : 'May 1';
@@ -396,10 +406,10 @@
             showedCalls: 0,
             totalCost: 0
           });
-          db.collection('tabs').doc(tab).update({ days })
-            .catch(error => console.error(`Error adding new day for ${tab}:`, error));
+          db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
+            .catch(error => console.error(`Error adding new day for ${username}/${tab}:`, error));
         }
-      }).catch(error => console.error(`Firestore get error for addNewDay ${tab}:`, error));
+      }).catch(error => console.error(`Firestore get error for addNewDay ${username}/${tab}:`, error));
     }
 
     // Switch tabs
@@ -419,7 +429,7 @@
     // Update cumulative metrics
     function updateCumulative(tab) {
       if (isFirebaseInitialized) {
-        db.collection('tabs').doc(tab).get().then(doc => {
+        db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
           if (doc.exists) {
             const days = doc.data().days || [];
             let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0;
@@ -455,7 +465,7 @@
             document.getElementById('cumulativeCostPerShowedCall').innerText = `$${costPerShowedCall}`;
             document.getElementById('cumulativeShowRate').innerText = `${showRate}%`;
           }
-        }).catch(error => console.error(`Cumulative update error for ${tab}:`, error));
+        }).catch(error => console.error(`Cumulative update error for ${username}/${tab}:`, error));
       } else {
         const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
         const rows = tbody.getElementsByTagName('tr');
