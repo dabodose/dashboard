@@ -110,11 +110,27 @@
       text-align: center;
       font-size: 14px;
     }
+    .daily-inputs input.date-input {
+      width: 80px;
+    }
     .daily-inputs th {
       background-color: #2E2E2E;
       position: sticky;
       top: 0;
       z-index: 1;
+    }
+    .delete-btn {
+      background-color: #FF4500;
+      border: none;
+      color: #FFFFFF;
+      padding: 2px 6px;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 3px;
+      transition: background-color 0.3s;
+    }
+    .delete-btn:hover {
+      background-color: #FF6347;
     }
     .tab-content {
       display: none;
@@ -192,6 +208,7 @@
               <th>Booked Calls</th>
               <th>Showed Calls</th>
               <th>Total Cost ($)</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="tbodyTab1"></tbody>
@@ -211,6 +228,7 @@
               <th>Booked Calls</th>
               <th>Showed Calls</th>
               <th>Total Cost ($)</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="tbodyTab2"></tbody>
@@ -230,6 +248,7 @@
               <th>Booked Calls</th>
               <th>Showed Calls</th>
               <th>Total Cost ($)</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="tbodyTab3"></tbody>
@@ -249,6 +268,7 @@
               <th>Booked Calls</th>
               <th>Showed Calls</th>
               <th>Total Cost ($)</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="tbodyTab4"></tbody>
@@ -414,13 +434,14 @@
         const row = document.createElement('tr');
         const onChangeHandler = isFirebaseInitialized ? `updateFirestore('${tab}', ${index})` : `updateCumulative('${tab}')`;
         row.innerHTML = `
-          <td>${day.date}</td>
+          <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.date}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.impressions || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.clicks || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.leads || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.bookedCalls || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.showedCalls || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="totalCostDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.totalCost || 0}" onchange="${onChangeHandler}"></td>
+          <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})">X</button></td>
         `;
         tbody.appendChild(row);
       });
@@ -430,6 +451,7 @@
     function updateFirestore(tab, dayIndex) {
       if (!isFirebaseInitialized) return;
 
+      const date = document.getElementById(`dateDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value;
       const impressions = parseFloat(document.getElementById(`impressionsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const clicks = parseFloat(document.getElementById(`clicksDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const leads = parseFloat(document.getElementById(`leadsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
@@ -442,7 +464,7 @@
           const days = doc.data().days;
           if (days && days[dayIndex]) {
             days[dayIndex] = {
-              date: days[dayIndex].date,
+              date: date,
               impressions,
               clicks,
               leads,
@@ -461,25 +483,50 @@
       }
     }
 
+    // Delete a row
+    function deleteRow(tab, dayIndex) {
+      if (!isFirebaseInitialized) {
+        const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+        const rows = tbody.getElementsByTagName('tr');
+        if (rows[dayIndex]) {
+          tbody.removeChild(rows[dayIndex]);
+          updateCumulative(tab);
+        }
+        return;
+      }
+
+      db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
+        if (doc.exists) {
+          const days = doc.data().days || [];
+          if (days[dayIndex]) {
+            days.splice(dayIndex, 1);
+            db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
+              .catch(error => console.error(`Error deleting row for ${username}/${tab}, day ${dayIndex}:`, error));
+          }
+        }
+      }).catch(error => console.error(`Firestore get error for deleteRow ${username}/${tab}:`, error));
+    }
+
     // Add a new day
     function addNewDay(tab) {
       if (!isFirebaseInitialized) {
         const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
         const rows = tbody.getElementsByTagName('tr');
-        const lastDate = rows.length > 0 ? rows[rows.length - 1].cells[0].innerText : currentDate;
+        const lastDate = rows.length > 0 ? rows[rows.length - 1].cells[0].querySelector('input').value : currentDate;
         const [month, day] = lastDate.split(' ');
         const lastDayNum = parseInt(day) || 0;
         const newDate = `${month} ${lastDayNum + 1}`;
         const index = rows.length;
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${newDate}</td>
+          <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${newDate}" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="totalCostDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
+          <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})">X</button></td>
         `;
         tbody.appendChild(row);
         updateCumulative(tab);
