@@ -36,6 +36,22 @@
       display: flex;
       flex-direction: column;
       justify-content: space-around;
+      border: 2px solid #FFFFFF;
+    }
+    #ctr-box {
+      box-shadow: 0 0 10px rgba(128, 0, 128, 0.7), 0 0 20px rgba(128, 0, 128, 0.5); /* Purple glow */
+    }
+    #leads-box {
+      box-shadow: 0 0 10px rgba(75, 0, 130, 0.7), 0 0 20px rgba(75, 0, 130, 0.5); /* Blue-Purple glow */
+    }
+    #booked-calls-box {
+      box-shadow: 0 0 10px rgba(0, 0, 255, 0.7), 0 0 20px rgba(0, 0, 255, 0.5); /* Blue glow */
+    }
+    #showed-calls-box {
+      box-shadow: 0 0 10px rgba(0, 206, 209, 0.7), 0 0 20px rgba(0, 206, 209, 0.5); /* Green-Blue glow */
+    }
+    #conversions-box {
+      box-shadow: 0 0 10px rgba(0, 128, 0, 0.7), 0 0 20px rgba(0, 128, 0, 0.5); /* Green glow */
     }
     .tabs {
       display: flex;
@@ -84,11 +100,12 @@
       border-radius: 8px;
       padding: 20px;
       margin: 20px auto;
-      max-width: 900px;
+      max-width: 1200px;
       max-height: 400px;
       overflow-y: auto;
       flex-grow: 0;
       width: 90%;
+      border: 2px solid #FFFFFF;
     }
     .daily-inputs table {
       width: 100%;
@@ -99,6 +116,12 @@
       padding: 8px;
       text-align: center;
       border: 1px solid #4A4A4A;
+      position: relative;
+      height: 40px;
+      box-sizing: border-box;
+    }
+    .daily-inputs th:nth-child(11), .daily-inputs td:nth-child(11) {
+      width: 150px;
     }
     .daily-inputs input {
       background-color: #4A4A4A;
@@ -109,6 +132,8 @@
       width: 60px;
       text-align: center;
       font-size: 14px;
+      height: 24px;
+      box-sizing: border-box;
     }
     .daily-inputs input.date-input {
       width: 80px;
@@ -118,6 +143,21 @@
       position: sticky;
       top: 0;
       z-index: 1;
+    }
+    .daily-inputs .calculated {
+      background-color: #2E2E2E;
+      color: #A0A0A0;
+      cursor: default;
+    }
+    .derived-line {
+      border: none;
+      border-top: 2px solid #FFFFFF;
+      width: 70%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
     }
     .delete-btn {
       background-color: #FF4500;
@@ -158,25 +198,30 @@
 </head>
 <body>
   <div id="metrics-container" class="metrics-container">
-    <div id="ctr-box" class="metric-box" style="border: 2px solid #FF4500;">
+    <div id="ctr-box" class="metric-box">
       <div>Clicks: <span id="cumulativeClicks">0</span></div>
       <div>CPC: <span id="cumulativeCPC">$0.0</span></div>
       <div>CTR: <span id="cumulativeCTR">0.0%</span></div>
     </div>
-    <div id="leads-box" class="metric-box" style="border: 2px solid #1E90FF;">
+    <div id="leads-box" class="metric-box">
       <div>Leads: <span id="cumulativeLeads">0</span></div>
       <div>CPL: <span id="cumulativeCPL">$0.0</span></div>
       <div>CR: <span id="cumulativeConversionRate">0.0%</span></div>
     </div>
-    <div id="booked-calls-box" class="metric-box" style="border: 2px solid #FFD700;">
+    <div id="booked-calls-box" class="metric-box">
       <div>Booked Calls: <span id="cumulativeBookedCalls">0</span></div>
       <div>Cost: <span id="cumulativeCostPerBookedCall">$0.0</span></div>
       <div>CR: <span id="cumulativeBookingConversionRate">0.0%</span></div>
     </div>
-    <div id="showed-calls-box" class="metric-box" style="border: 2px solid #00CED1;">
+    <div id="showed-calls-box" class="metric-box">
       <div>Showed Calls: <span id="cumulativeShowedCalls">0</span></div>
       <div>Cost: <span id="cumulativeCostPerShowedCall">$0.0</span></div>
       <div>CR: <span id="cumulativeShowRate">0.0%</span></div>
+    </div>
+    <div id="conversions-box" class="metric-box">
+      <div>Sales: <span id="cumulativeConversions">0</span></div>
+      <div>Cost: <span id="cumulativeCostPerConversion">$0.0</span></div>
+      <div>CR: <span id="cumulativeConversionCR">0.0%</span></div>
     </div>
   </div>
 
@@ -202,12 +247,16 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Impressions</th>
+              <th>Cost ($)</th>
+              <th>CPM</th>
+              <th>Imp.</th>
+              <th>CTR</th>
               <th>Clicks</th>
               <th>Leads</th>
               <th>Booked Calls</th>
               <th>Showed Calls</th>
-              <th>Total Cost ($)</th>
+              <th>Sales</th>
+              <th>Name</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -222,12 +271,16 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Impressions</th>
+              <th>Cost ($)</th>
+              <th>CPM</th>
+              <th>Imp.</th>
+              <th>CTR</th>
               <th>Clicks</th>
               <th>Leads</th>
               <th>Booked Calls</th>
               <th>Showed Calls</th>
-              <th>Total Cost ($)</th>
+              <th>Sales</th>
+              <th>Name</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -242,12 +295,16 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Impressions</th>
+              <th>Cost ($)</th>
+              <th>CPM</th>
+              <th>Imp.</th>
+              <th>CTR</th>
               <th>Clicks</th>
               <th>Leads</th>
               <th>Booked Calls</th>
               <th>Showed Calls</th>
-              <th>Total Cost ($)</th>
+              <th>Sales</th>
+              <th>Name</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -262,12 +319,16 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Impressions</th>
+              <th>Cost ($)</th>
+              <th>CPM</th>
+              <th>Imp.</th>
+              <th>CTR</th>
               <th>Clicks</th>
               <th>Leads</th>
               <th>Booked Calls</th>
               <th>Showed Calls</th>
-              <th>Total Cost ($)</th>
+              <th>Sales</th>
+              <th>Name</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -325,8 +386,8 @@
 
     // Initialize data (with or without Firebase)
     const defaultDays = [
-      { date: currentDate, impressions: 10000, clicks: 100, leads: 20, bookedCalls: 2, showedCalls: 1, totalCost: 200 },
-      { date: `${monthNames[today.getMonth()]} ${today.getDate() + 1}`, impressions: 15000, clicks: 150, leads: 30, bookedCalls: 3, showedCalls: 2, totalCost: 300 }
+      { date: currentDate, cost: 200, impressions: 10000, clicks: 100, leads: 20, bookedCalls: 2, showedCalls: 1, conversions: 1, name: "", extraRows: [] },
+      { date: `${monthNames[today.getMonth()]} ${today.getDate() + 1}`, cost: 300, impressions: 15000, clicks: 150, leads: 30, bookedCalls: 3, showedCalls: 2, conversions: 2, name: "", extraRows: [] }
     ];
 
     // Load tab names from Firestore or set defaults
@@ -423,24 +484,24 @@
 
     // Function to update tab name in Firestore
     function updateTabName(tab, newName) {
-      if (!isFirebaseInitialized) return;
+      if (!isFirebaseInitialized) {
+        const input = document.getElementById(`tabName${tabs.indexOf(tab) + 1}`);
+        input.value = newName.trim() || defaultTabNames[tab];
+        return;
+      }
       if (!newName.trim()) {
         alert('Tab name cannot be empty.');
         document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = defaultTabNames[tab];
         return;
       }
 
-      db.collection('users').doc(username).collection('metadata').doc('tabNames').get()
-        .then(doc => {
-          if (doc.exists) {
-            const names = doc.data().names || {};
-            names[tab] = newName.trim();
-            db.collection('users').doc(username).collection('metadata').doc('tabNames')
-              .update({ names })
-              .catch(error => console.error(`Error updating tab name for ${username}/${tab}:`, error));
-          }
-        })
-        .catch(error => console.error(`Error fetching tab names for ${username}:`, error));
+      db.collection('users').doc(username).collection('metadata').doc('tabNames')
+        .set({ names: { [tab]: newName.trim() } }, { merge: true })
+        .catch(error => {
+          console.error(`Error updating tab name for ${username}/${tab}:`, error);
+          alert(`Failed to update tab name: ${error.message}. Please try again.`);
+          document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = defaultTabNames[tab];
+        });
     }
 
     // Render table data for a tab
@@ -453,18 +514,49 @@
       tbody.innerHTML = '';
       days.forEach((day, index) => {
         const row = document.createElement('tr');
+        const cpm = day.impressions ? ((day.cost / day.impressions) * 1000).toFixed(2) : '0.00';
+        const ctr = day.impressions ? ((day.clicks / day.impressions) * 100).toFixed(2) : '0.00';
         const onChangeHandler = isFirebaseInitialized ? `updateFirestore('${tab}', ${index})` : `updateCumulative('${tab}')`;
+        const nameDisabled = day.bookedCalls === 0 ? ' disabled' : '';
+        const nameValue = day.bookedCalls === 0 ? '' : (day.name || '');
         row.innerHTML = `
           <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.date}" onchange="${onChangeHandler}"></td>
+          <td><input type="text" id="costDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.cost || 0}" onchange="${onChangeHandler}"></td>
+          <td><input type="text" class="calculated" readonly value="$${cpm}" title="Calculated as (Cost / Impressions) * 1000"></td>
           <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.impressions || 0}" onchange="${onChangeHandler}"></td>
+          <td><input type="text" class="calculated" readonly value="${ctr}%" title="Calculated as (Clicks / Impressions) * 100"></td>
           <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.clicks || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.leads || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.bookedCalls || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.showedCalls || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" id="totalCostDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.totalCost || 0}" onchange="${onChangeHandler}"></td>
+          <td><input type="text" id="conversionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.conversions || 0}" onchange="${onChangeHandler}"></td>
+          <td><input type="text" id="nameDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${nameValue}"${nameDisabled} onchange="${onChangeHandler}"></td>
           <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})">X</button></td>
         `;
         tbody.appendChild(row);
+
+        // Handle additional rows for Booked Calls > 1
+        if (day.bookedCalls > 1) {
+          for (let i = 1; i < day.bookedCalls; i++) {
+            const extraRow = document.createElement('tr');
+            const extraData = day.extraRows && day.extraRows[i - 1] ? day.extraRows[i - 1] : { showedCalls: 0, conversions: 0, name: '' };
+            extraRow.innerHTML = `
+              <td><hr class="derived-line"></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td><input type="text" id="extraShowedCallsDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.showedCalls || 0}" onchange="${onChangeHandler}"></td>
+              <td><input type="text" id="extraConversionsDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.conversions || 0}" onchange="${onChangeHandler}"></td>
+              <td><input type="text" id="extraNameDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.name || ''}" onchange="${onChangeHandler}"></td>
+              <td></td>
+            `;
+            tbody.appendChild(extraRow);
+          }
+        }
       });
     }
 
@@ -473,26 +565,54 @@
       if (!isFirebaseInitialized) return;
 
       const date = document.getElementById(`dateDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value;
+      const cost = parseFloat(document.getElementById(`costDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const impressions = parseFloat(document.getElementById(`impressionsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const clicks = parseFloat(document.getElementById(`clicksDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const leads = parseFloat(document.getElementById(`leadsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const bookedCalls = parseFloat(document.getElementById(`bookedCallsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const showedCalls = parseFloat(document.getElementById(`showedCallsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const totalCost = parseFloat(document.getElementById(`totalCostDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
+      const conversions = parseFloat(document.getElementById(`conversionsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
+      const name = document.getElementById(`nameDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value || '';
 
       db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
         if (doc.exists) {
           const days = doc.data().days;
           if (days && days[dayIndex]) {
+            // Update main row data
             days[dayIndex] = {
               date: date,
-              impressions,
-              clicks,
-              leads,
-              bookedCalls,
-              showedCalls,
-              totalCost
+              cost: cost,
+              impressions: impressions,
+              clicks: clicks,
+              leads: leads,
+              bookedCalls: bookedCalls,
+              showedCalls: showedCalls,
+              conversions: conversions,
+              name: bookedCalls >= 1 ? name : "",
+              extraRows: days[dayIndex].extraRows || []
             };
+
+            // Adjust extraRows array based on bookedCalls
+            if (bookedCalls <= 1) {
+              days[dayIndex].extraRows = [];
+            } else {
+              // Resize extraRows to match bookedCalls
+              const currentExtraRows = days[dayIndex].extraRows || [];
+              const newExtraRows = [];
+              for (let i = 1; i < bookedCalls; i++) {
+                const extraShowedCalls = parseFloat(document.getElementById(`extraShowedCallsDay${dayIndex + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value) || 0;
+                const extraConversions = parseFloat(document.getElementById(`extraConversionsDay${dayIndex + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value) || 0;
+                const extraName = document.getElementById(`extraNameDay${dayIndex + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || '';
+                newExtraRows[i - 1] = {
+                  showedCalls: extraShowedCalls,
+                  conversions: extraConversions,
+                  name: extraName
+                };
+              }
+              days[dayIndex].extraRows = newExtraRows;
+            }
+
+            // Save the updated days array to Firestore
             db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
               .catch(error => console.error(`Firestore update error for ${username}/${tab}, day ${dayIndex}:`, error));
           }
@@ -541,12 +661,16 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${newDate}" onchange="updateCumulative('${tab}')"></td>
+          <td><input type="text" id="costDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
+          <td><input type="text" class="calculated" readonly value="$0.00" title="Calculated as (Cost / Impressions) * 1000"></td>
           <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
+          <td><input type="text" class="calculated" readonly value="0%" title="Calculated as (Clicks / Impressions) * 100"></td>
           <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" id="totalCostDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
+          <td><input type="text" id="conversionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
+          <td><input type="text" id="nameDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="" disabled></td>
           <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})">X</button></td>
         `;
         tbody.appendChild(row);
@@ -554,26 +678,40 @@
         return;
       }
 
-      db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
-        if (doc.exists) {
-          const days = doc.data().days || [];
+      db.collection('users').doc(username).collection('tabs').doc(tab).get()
+        .then(doc => {
+          const days = doc.exists ? (doc.data().days || []) : [];
           const lastDate = days.length > 0 ? days[days.length - 1].date : currentDate;
           const [month, day] = lastDate.split(' ');
           const lastDayNum = parseInt(day) || 0;
           const newDate = `${month} ${lastDayNum + 1}`;
-          days.push({
+          const newDay = {
             date: newDate,
+            cost: 0,
             impressions: 0,
             clicks: 0,
             leads: 0,
             bookedCalls: 0,
             showedCalls: 0,
-            totalCost: 0
-          });
-          db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
-            .catch(error => console.error(`Error adding new day for ${username}/${tab}:`, error));
-        }
-      }).catch(error => console.error(`Firestore get error for addNewDay ${username}/${tab}:`, error));
+            conversions: 0,
+            name: "",
+            extraRows: []
+          };
+          days.push(newDay);
+          return db.collection('users').doc(username).collection('tabs').doc(tab)
+            .set({ days }, { merge: true })
+            .then(() => {
+              console.log(`Successfully added new day for ${username}/${tab}: ${newDate}`);
+              renderTabData(tab, days);
+              if (tab === currentTab) {
+                updateCumulative(tab);
+              }
+            });
+        })
+        .catch(error => {
+          console.error(`Error adding new day for ${username}/${tab}:`, error);
+          alert(`Failed to add new day: ${error.message}. Please try again.`);
+        });
     }
 
     // Switch tabs
@@ -596,7 +734,7 @@
         db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
           if (doc.exists) {
             const days = doc.data().days || [];
-            let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0;
+            let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
 
             days.forEach(day => {
               totalImpressions += day.impressions || 0;
@@ -604,7 +742,14 @@
               totalLeads += day.leads || 0;
               totalBookedCalls += day.bookedCalls || 0;
               totalShowedCalls += day.showedCalls || 0;
-              totalCost += day.totalCost || 0;
+              totalCost += day.cost || 0;
+              totalConversions += day.conversions || 0;
+              if (day.extraRows) {
+                day.extraRows.forEach(extra => {
+                  totalShowedCalls += extra.showedCalls || 0;
+                  totalConversions += extra.conversions || 0;
+                });
+              }
             });
 
             const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
@@ -615,6 +760,8 @@
             const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
             const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
             const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
+            const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
+            const conversionCR = totalBookedCalls ? (totalConversions / totalBookedCalls * 100).toFixed(1) : 0;
 
             document.getElementById('cumulativeClicks').innerText = totalClicks;
             document.getElementById('cumulativeCTR').innerText = `${ctr}%`;
@@ -628,20 +775,31 @@
             document.getElementById('cumulativeShowedCalls').innerText = totalShowedCalls;
             document.getElementById('cumulativeCostPerShowedCall').innerText = `$${costPerShowedCall}`;
             document.getElementById('cumulativeShowRate').innerText = `${showRate}%`;
+            document.getElementById('cumulativeConversions').innerText = totalConversions;
+            document.getElementById('cumulativeCostPerConversion').innerText = `$${costPerConversion}`;
+            document.getElementById('cumulativeConversionCR').innerText = `${conversionCR}%`;
           }
         }).catch(error => console.error(`Cumulative update error for ${username}/${tab}:`, error));
       } else {
         const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
         const rows = tbody.getElementsByTagName('tr');
-        let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0;
+        let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
 
         for (let i = 0; i < rows.length; i++) {
+          const bookedCalls = parseFloat(document.getElementById(`bookedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
           totalImpressions += parseFloat(document.getElementById(`impressionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
           totalClicks += parseFloat(document.getElementById(`clicksDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
           totalLeads += parseFloat(document.getElementById(`leadsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalBookedCalls += parseFloat(document.getElementById(`bookedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
+          totalBookedCalls += bookedCalls;
           totalShowedCalls += parseFloat(document.getElementById(`showedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalCost += parseFloat(document.getElementById(`totalCostDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
+          totalCost += parseFloat(document.getElementById(`costDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
+          totalConversions += parseFloat(document.getElementById(`conversionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
+
+          // Loop through extra rows for this day
+          for (let j = 1; j < bookedCalls; j++) {
+            totalShowedCalls += parseFloat(document.getElementById(`extraShowedCallsDay${i + 1}_${j}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || 0);
+            totalConversions += parseFloat(document.getElementById(`extraConversionsDay${i + 1}_${j}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || 0);
+          }
         }
 
         const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
@@ -652,6 +810,8 @@
         const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
         const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
         const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
+        const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
+        const conversionCR = totalBookedCalls ? (totalConversions / totalBookedCalls * 100).toFixed(1) : 0;
 
         document.getElementById('cumulativeClicks').innerText = totalClicks;
         document.getElementById('cumulativeCTR').innerText = `${ctr}%`;
@@ -665,6 +825,9 @@
         document.getElementById('cumulativeShowedCalls').innerText = totalShowedCalls;
         document.getElementById('cumulativeCostPerShowedCall').innerText = `$${costPerShowedCall}`;
         document.getElementById('cumulativeShowRate').innerText = `${showRate}%`;
+        document.getElementById('cumulativeConversions').innerText = totalConversions;
+        document.getElementById('cumulativeCostPerConversion').innerText = `$${costPerConversion}`;
+        document.getElementById('cumulativeConversionCR').innerText = `${conversionCR}%`;
       }
     }
   </script>
