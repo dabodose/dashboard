@@ -1,0 +1,406 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-Tab Campaign Performance Dashboard</title>
+  <style>
+    body {
+      background-color: #2E2E2E;
+      color: #FFFFFF;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .metrics-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 20px;
+      flex-grow: 1;
+      max-height: 200px;
+    }
+    .metric-box {
+      background-color: #3A3A3A;
+      border-radius: 10px;
+      padding: 10px 20px;
+      margin: 10px;
+      text-align: center;
+      min-width: 180px;
+      max-width: 180px;
+      height: 120px;
+      font-size: 18px;
+      line-height: 1.4;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+    }
+    .tabs {
+      display: flex;
+      justify-content: space-around;
+      background-color: #1A1A1A;
+      padding: 10px 0;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 2;
+    }
+    .tab-button {
+      background-color: #4A4A4A;
+      border: none;
+      color: #FFFFFF;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+      flex: 1;
+      margin: 0 5px;
+      text-align: center;
+    }
+    .tab-button:hover {
+      background-color: #5A5A5A;
+    }
+    .tab-button.active {
+      background-color: #00CED1;
+    }
+    .daily-inputs {
+      background-color: #3A3A3A;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 900px;
+      max-height: 400px;
+      overflow-y: auto;
+      flex-grow: 0;
+      width: 90%;
+    }
+    .daily-inputs table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 auto;
+    }
+    .daily-inputs th, .daily-inputs td {
+      padding: 8px;
+      text-align: center;
+      border: 1px solid #4A4A4A;
+    }
+    .daily-inputs input {
+      background-color: #4A4A4A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      padding: 5px;
+      width: 60px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .daily-inputs th {
+      background-color: #2E2E2E;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .add-day-button {
+      background-color: #00CED1;
+      border: none;
+      color: #FFFFFF;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 5px;
+      margin: 10px auto;
+      display: block;
+      transition: background-color 0.3s;
+    }
+    .add-day-button:hover {
+      background-color: #00B7C2;
+    }
+  </style>
+</head>
+<body>
+  <div id="metrics-container" class="metrics-container">
+    <div id="ctr-box" class="metric-box" style="border: 2px solid #FF4500;">
+      <div>Clicks: <span id="cumulativeClicks">3250</span></div>
+      <div>CPC: <span id="cumulativeCPC">$2.2</span></div>
+      <div>CTR: <span id="cumulativeCTR">0.2%</span></div>
+    </div>
+    <div id="leads-box" class="metric-box" style="border: 2px solid #1E90FF;">
+      <div>Leads: <span id="cumulativeLeads">650</span></div>
+      <div>CPL: <span id="cumulativeCPL">$10.8</span></div>
+      <div>CR: <span id="cumulativeConversionRate">20.0%</span></div>
+    </div>
+    <div id="booked-calls-box" class="metric-box" style="border: 2px solid #FFD700;">
+      <div>Booked Calls: <span id="cumulativeBookedCalls">50</span></div>
+      <div>Cost: <span id="cumulativeCostPerBookedCall">$140.0</span></div>
+      <div>CR: <span id="cumulativeBookingConversionRate">7.7%</span></div>
+    </div>
+    <div id="showed-calls-box" class="metric-box" style="border: 2px solid #00CED1;">
+      <div>Showed Calls: <span id="cumulativeShowedCalls">40</span></div>
+      <div>Cost: <span id="cumulativeCostPerShowedCall">$175.0</span></div>
+      <div>CR: <span id="cumulativeShowRate">80.0%</span></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-button active" onclick="openTab('tab1')">Ad 1</button>
+    <button class="tab-button" onclick="openTab('tab2')">Ad 2</button>
+    <button class="tab-button" onclick="openTab('tab3')">Ad 3</button>
+    <button class="tab-button" onclick="openTab('tab4')">Ad 4</button>
+  </div>
+
+  <div id="tab-content-container">
+    <div id="tab1" class="tab-content active">
+      <div class="daily-inputs">
+        <table id="tableTab1">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>Leads</th>
+              <th>Booked Calls</th>
+              <th>Showed Calls</th>
+              <th>Total Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>May 1</td><td><input type="text" id="impressionsDay1Tab1" value="10000" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay1Tab1" value="100" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay1Tab1" value="20" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay1Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay1Tab1" value="1" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay1Tab1" value="200" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 2</td><td><input type="text" id="impressionsDay2Tab1" value="15000" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay2Tab1" value="150" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay2Tab1" value="30" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay2Tab1" value="3" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay2Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay2Tab1" value="300" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 3</td><td><input type="text" id="impressionsDay3Tab1" value="20000" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay3Tab1" value="200" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay3Tab1" value="40" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay3Tab1" value="4" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay3Tab1" value="3" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay3Tab1" value="400" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 4</td><td><input type="text" id="impressionsDay4Tab1" value="12500" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay4Tab1" value="125" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay4Tab1" value="25" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay4Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay4Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay4Tab1" value="250" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 5</td><td><input type="text" id="impressionsDay5Tab1" value="7500" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay5Tab1" value="75" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay5Tab1" value="15" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay5Tab1" value="1" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay5Tab1" value="1" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay5Tab1" value="150" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 6</td><td><input type="text" id="impressionsDay6Tab1" value="15000" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay6Tab1" value="150" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay6Tab1" value="30" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay6Tab1" value="3" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay6Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay6Tab1" value="300" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 7</td><td><input type="text" id="impressionsDay7Tab1" value="17500" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay7Tab1" value="175" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay7Tab1" value="35" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay7Tab1" value="4" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay7Tab1" value="3" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay7Tab1" value="350" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 8</td><td><input type="text" id="impressionsDay8Tab1" value="12500" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay8Tab1" value="125" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay8Tab1" value="25" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay8Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay8Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay8Tab1" value="250" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 9</td><td><input type="text" id="impressionsDay9Tab1" value="10000" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay9Tab1" value="100" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay9Tab1" value="20" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay9Tab1" value="1" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay9Tab1" value="1" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay9Tab1" value="200" oninput="updateCumulative('tab1')"></td></tr>
+            <tr><td>May 10</td><td><input type="text" id="impressionsDay10Tab1" value="15000" oninput="updateCumulative('tab1')"></td><td><input type="text" id="clicksDay10Tab1" value="150" oninput="updateCumulative('tab1')"></td><td><input type="text" id="leadsDay10Tab1" value="30" oninput="updateCumulative('tab1')"></td><td><input type="text" id="bookedCallsDay10Tab1" value="3" oninput="updateCumulative('tab1')"></td><td><input type="text" id="showedCallsDay10Tab1" value="2" oninput="updateCumulative('tab1')"></td><td><input type="text" id="totalCostDay10Tab1" value="300" oninput="updateCumulative('tab1')"></td></tr>
+          </tbody>
+        </table>
+        <button class="add-day-button" onclick="addNewDay('tab1')">Add New Day</button>
+      </div>
+    </div>
+    <div id="tab2" class="tab-content">
+      <div class="daily-inputs">
+        <table id="tableTab2">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>Leads</th>
+              <th>Booked Calls</th>
+              <th>Showed Calls</th>
+              <th>Total Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>May 1</td><td><input type="text" id="impressionsDay1Tab2" value="12000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay1Tab2" value="120" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay1Tab2" value="24" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay1Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay1Tab2" value="1" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay1Tab2" value="240" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 2</td><td><input type="text" id="impressionsDay2Tab2" value="18000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay2Tab2" value="180" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay2Tab2" value="36" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay2Tab2" value="3" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay2Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay2Tab2" value="360" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 3</td><td><input type="text" id="impressionsDay3Tab2" value="24000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay3Tab2" value="240" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay3Tab2" value="48" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay3Tab2" value="4" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay3Tab2" value="3" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay3Tab2" value="480" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 4</td><td><input type="text" id="impressionsDay4Tab2" value="15000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay4Tab2" value="150" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay4Tab2" value="30" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay4Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay4Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay4Tab2" value="300" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 5</td><td><input type="text" id="impressionsDay5Tab2" value="9000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay5Tab2" value="90" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay5Tab2" value="18" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay5Tab2" value="1" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay5Tab2" value="1" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay5Tab2" value="180" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 6</td><td><input type="text" id="impressionsDay6Tab2" value="18000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay6Tab2" value="180" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay6Tab2" value="36" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay6Tab2" value="3" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay6Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay6Tab2" value="360" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 7</td><td><input type="text" id="impressionsDay7Tab2" value="21000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay7Tab2" value="210" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay7Tab2" value="42" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay7Tab2" value="4" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay7Tab2" value="3" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay7Tab2" value="420" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 8</td><td><input type="text" id="impressionsDay8Tab2" value="15000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay8Tab2" value="150" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay8Tab2" value="30" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay8Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay8Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay8Tab2" value="300" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 9</td><td><input type="text" id="impressionsDay9Tab2" value="12000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay9Tab2" value="120" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay9Tab2" value="24" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay9Tab2" value="1" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay9Tab2" value="1" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay9Tab2" value="240" oninput="updateCumulative('tab2')"></td></tr>
+            <tr><td>May 10</td><td><input type="text" id="impressionsDay10Tab2" value="18000" oninput="updateCumulative('tab2')"></td><td><input type="text" id="clicksDay10Tab2" value="180" oninput="updateCumulative('tab2')"></td><td><input type="text" id="leadsDay10Tab2" value="36" oninput="updateCumulative('tab2')"></td><td><input type="text" id="bookedCallsDay10Tab2" value="3" oninput="updateCumulative('tab2')"></td><td><input type="text" id="showedCallsDay10Tab2" value="2" oninput="updateCumulative('tab2')"></td><td><input type="text" id="totalCostDay10Tab2" value="360" oninput="updateCumulative('tab2')"></td></tr>
+          </tbody>
+        </table>
+        <button class="add-day-button" onclick="addNewDay('tab2')">Add New Day</button>
+      </div>
+    </div>
+    <div id="tab3" class="tab-content">
+      <div class="daily-inputs">
+        <table id="tableTab3">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>Leads</th>
+              <th>Booked Calls</th>
+              <th>Showed Calls</th>
+              <th>Total Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>May 1</td><td><input type="text" id="impressionsDay1Tab3" value="8000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay1Tab3" value="80" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay1Tab3" value="16" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay1Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay1Tab3" value="1" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay1Tab3" value="160" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 2</td><td><input type="text" id="impressionsDay2Tab3" value="12000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay2Tab3" value="120" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay2Tab3" value="24" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay2Tab3" value="3" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay2Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay2Tab3" value="240" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 3</td><td><input type="text" id="impressionsDay3Tab3" value="16000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay3Tab3" value="160" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay3Tab3" value="32" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay3Tab3" value="4" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay3Tab3" value="3" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay3Tab3" value="320" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 4</td><td><input type="text" id="impressionsDay4Tab3" value="10000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay4Tab3" value="100" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay4Tab3" value="20" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay4Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay4Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay4Tab3" value="200" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 5</td><td><input type="text" id="impressionsDay5Tab3" value="6000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay5Tab3" value="60" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay5Tab3" value="12" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay5Tab3" value="1" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay5Tab3" value="1" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay5Tab3" value="120" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 6</td><td><input type="text" id="impressionsDay6Tab3" value="12000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay6Tab3" value="120" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay6Tab3" value="24" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay6Tab3" value="3" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay6Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay6Tab3" value="240" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 7</td><td><input type="text" id="impressionsDay7Tab3" value="14000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay7Tab3" value="140" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay7Tab3" value="28" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay7Tab3" value="4" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay7Tab3" value="3" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay7Tab3" value="280" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 8</td><td><input type="text" id="impressionsDay8Tab3" value="10000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay8Tab3" value="100" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay8Tab3" value="20" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay8Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay8Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay8Tab3" value="200" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 9</td><td><input type="text" id="impressionsDay9Tab3" value="8000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay9Tab3" value="80" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay9Tab3" value="16" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay9Tab3" value="1" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay9Tab3" value="1" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay9Tab3" value="160" oninput="updateCumulative('tab3')"></td></tr>
+            <tr><td>May 10</td><td><input type="text" id="impressionsDay10Tab3" value="12000" oninput="updateCumulative('tab3')"></td><td><input type="text" id="clicksDay10Tab3" value="120" oninput="updateCumulative('tab3')"></td><td><input type="text" id="leadsDay10Tab3" value="24" oninput="updateCumulative('tab3')"></td><td><input type="text" id="bookedCallsDay10Tab3" value="3" oninput="updateCumulative('tab3')"></td><td><input type="text" id="showedCallsDay10Tab3" value="2" oninput="updateCumulative('tab3')"></td><td><input type="text" id="totalCostDay10Tab3" value="240" oninput="updateCumulative('tab3')"></td></tr>
+          </tbody>
+        </table>
+        <button class="add-day-button" onclick="addNewDay('tab3')">Add New Day</button>
+      </div>
+    </div>
+    <div id="tab4" class="tab-content">
+      <div class="daily-inputs">
+        <table id="tableTab4">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>Leads</th>
+              <th>Booked Calls</th>
+              <th>Showed Calls</th>
+              <th>Total Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>May 1</td><td><input type="text" id="impressionsDay1Tab4" value="11000" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay1Tab4" value="110" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay1Tab4" value="22" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay1Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay1Tab4" value="1" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay1Tab4" value="220" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 2</td><td><input type="text" id="impressionsDay2Tab4" value="16500" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay2Tab4" value="165" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay2Tab4" value="33" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay2Tab4" value="3" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay2Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay2Tab4" value="330" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 3</td><td><input type="text" id="impressionsDay3Tab4" value="22000" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay3Tab4" value="220" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay3Tab4" value="44" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay3Tab4" value="4" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay3Tab4" value="3" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay3Tab4" value="440" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 4</td><td><input type="text" id="impressionsDay4Tab4" value="13750" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay4Tab4" value="138" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay4Tab4" value="28" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay4Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay4Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay4Tab4" value="275" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 5</td><td><input type="text" id="impressionsDay5Tab4" value="8250" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay5Tab4" value="83" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay5Tab4" value="17" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay5Tab4" value="1" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay5Tab4" value="1" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay5Tab4" value="165" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 6</td><td><input type="text" id="impressionsDay6Tab4" value="16500" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay6Tab4" value="165" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay6Tab4" value="33" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay6Tab4" value="3" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay6Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay6Tab4" value="330" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 7</td><td><input type="text" id="impressionsDay7Tab4" value="19250" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay7Tab4" value="193" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay7Tab4" value="39" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay7Tab4" value="4" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay7Tab4" value="3" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay7Tab4" value="385" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 8</td><td><input type="text" id="impressionsDay8Tab4" value="13750" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay8Tab4" value="138" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay8Tab4" value="28" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay8Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay8Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay8Tab4" value="275" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 9</td><td><input type="text" id="impressionsDay9Tab4" value="11000" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay9Tab4" value="110" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay9Tab4" value="22" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay9Tab4" value="1" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay9Tab4" value="1" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay9Tab4" value="220" oninput="updateCumulative('tab4')"></td></tr>
+            <tr><td>May 10</td><td><input type="text" id="impressionsDay10Tab4" value="16500" oninput="updateCumulative('tab4')"></td><td><input type="text" id="clicksDay10Tab4" value="165" oninput="updateCumulative('tab4')"></td><td><input type="text" id="leadsDay10Tab4" value="33" oninput="updateCumulative('tab4')"></td><td><input type="text" id="bookedCallsDay10Tab4" value="3" oninput="updateCumulative('tab4')"></td><td><input type="text" id="showedCallsDay10Tab4" value="2" oninput="updateCumulative('tab4')"></td><td><input type="text" id="totalCostDay10Tab4" value="330" oninput="updateCumulative('tab4')"></td></tr>
+          </tbody>
+        </table>
+        <button class="add-day-button" onclick="addNewDay('tab4')">Add New Day</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openTab(tabId) {
+      const tabContents = document.querySelectorAll('.tab-content');
+      tabContents.forEach(tab => {
+        tab.classList.remove('active');
+      });
+      const tabButtons = document.querySelectorAll('.tab-button');
+      tabButtons.forEach(button => {
+        button.classList.remove('active');
+      });
+      document.getElementById(tabId).classList.add('active');
+      document.querySelector(`button[onclick="openTab('${tabId}')"]`).classList.add('active');
+      updateCumulative(tabId);
+    }
+
+    function addNewDay(tabId) {
+      const table = document.getElementById(`table${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).getElementsByTagName('tbody')[0];
+      const rowCount = table.rows.length;
+      const lastRow = table.rows[rowCount - 1];
+      const lastDate = lastRow.cells[0].textContent; // e.g., "May 10"
+      const [month, day] = lastDate.split(' ');
+      const newDay = parseInt(day) + 1;
+      const newDate = `${month} ${newDay}`; // e.g., "May 11"
+
+      const newRow = table.insertRow();
+      newRow.innerHTML = `
+        <td>${newDate}</td>
+        <td><input type="text" id="impressionsDay${rowCount + 1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}" value="0" oninput="updateCumulative('${tabId}')"></td>
+        <td><input type="text" id="clicksDay${rowCount + 1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}" value="0" oninput="updateCumulative('${tabId}')"></td>
+        <td><input type="text" id="leadsDay${rowCount + 1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}" value="0" oninput="updateCumulative('${tabId}')"></td>
+        <td><input type="text" id="bookedCallsDay${rowCount + 1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}" value="0" oninput="updateCumulative('${tabId}')"></td>
+        <td><input type="text" id="showedCallsDay${rowCount + 1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}" value="0" oninput="updateCumulative('${tabId}')"></td>
+        <td><input type="text" id="totalCostDay${rowCount + 1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}" value="0" oninput="updateCumulative('${tabId}')"></td>
+      `;
+      updateCumulative(tabId);
+    }
+
+    function updateCumulative(tabId) {
+      const table = document.getElementById(`table${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).getElementsByTagName('tbody')[0];
+      const days = table.rows.length; // Dynamically get the number of rows
+
+      const impressionsValues = Array.from({length: days}, (_, i) => parseInt(document.getElementById(`impressionsDay${i+1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).value) || 0);
+      const clicksValues = Array.from({length: days}, (_, i) => parseInt(document.getElementById(`clicksDay${i+1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).value) || 0);
+      const leadsValues = Array.from({length: days}, (_, i) => parseInt(document.getElementById(`leadsDay${i+1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).value) || 0);
+      const bookedCallsValues = Array.from({length: days}, (_, i) => parseInt(document.getElementById(`bookedCallsDay${i+1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).value) || 0);
+      const showedCallsValues = Array.from({length: days}, (_, i) => parseInt(document.getElementById(`showedCallsDay${i+1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).value) || 0);
+      const totalCostValues = Array.from({length: days}, (_, i) => parseFloat(document.getElementById(`totalCostDay${i+1}${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).value) || 0);
+
+      const totalImpressions = impressionsValues.reduce((a, b) => a + b, 0);
+      const totalClicks = clicksValues.reduce((a, b) => a + b, 0);
+      const totalLeads = leadsValues.reduce((a, b) => a + b, 0);
+      const totalBookedCalls = bookedCallsValues.reduce((a, b) => a + b, 0);
+      const totalShowedCalls = showedCallsValues.reduce((a, b) => a + b, 0);
+      const totalCost = totalCostValues.reduce((a, b) => a + b, 0);
+
+      document.getElementById('cumulativeClicks').textContent = totalClicks;
+      const cumulativeCPC = totalClicks > 0 ? '$' + (totalCost / totalClicks).toFixed(1) : '$0.0';
+      document.getElementById('cumulativeCPC').textContent = cumulativeCPC;
+      const cumulativeCTR = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) + '%' : '0.0%';
+      document.getElementById('cumulativeCTR').textContent = cumulativeCTR;
+
+      document.getElementById('cumulativeLeads').textContent = totalLeads;
+      const cumulativeCPL = totalLeads > 0 ? '$' + (totalCost / totalLeads).toFixed(1) : '$0.0';
+      document.getElementById('cumulativeCPL').textContent = cumulativeCPL;
+      const cumulativeConversionRate = totalClicks > 0 ? ((totalLeads / totalClicks) * 100).toFixed(1) + '%' : '0.0%';
+      document.getElementById('cumulativeConversionRate').textContent = cumulativeConversionRate;
+
+      document.getElementById('cumulativeBookedCalls').textContent = totalBookedCalls;
+      const cumulativeCostPerBookedCall = totalBookedCalls > 0 ? '$' + (totalCost / totalBookedCalls).toFixed(1) : '$0.0';
+      document.getElementById('cumulativeCostPerBookedCall').textContent = cumulativeCostPerBookedCall;
+      const cumulativeBookingConversionRate = totalLeads > 0 ? ((totalBookedCalls / totalLeads) * 100).toFixed(1) + '%' : '0.0%';
+      document.getElementById('cumulativeBookingConversionRate').textContent = cumulativeBookingConversionRate;
+
+      document.getElementById('cumulativeShowedCalls').textContent = totalShowedCalls;
+      const cumulativeCostPerShowedCall = totalShowedCalls > 0 ? '$' + (totalCost / totalShowedCalls).toFixed(1) : '$0.0';
+      document.getElementById('cumulativeCostPerShowedCall').textContent = cumulativeCostPerShowedCall;
+      const cumulativeShowRate = totalBookedCalls > 0 ? ((totalShowedCalls / totalBookedCalls) * 100).toFixed(1) + '%' : '0.0%';
+      document.getElementById('cumulativeShowRate').textContent = cumulativeShowRate;
+    }
+
+    updateCumulative('tab1');
+  </script>
+</body>
+</html>
