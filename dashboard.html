@@ -13,6 +13,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      position: relative; /* For positioning the store button */
     }
     .home-icon {
       position: absolute;
@@ -26,6 +27,22 @@
     .home-icon:hover {
       color: #00CED1;
     }
+    .store-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #FF4500;
+      border: none;
+      color: #FFFFFF;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 3px;
+      transition: background-color 0.3s;
+    }
+    .store-btn:hover {
+      background-color: #FF6347;
+    }
     .metrics-container {
       display: flex;
       justify-content: center;
@@ -33,6 +50,7 @@
       padding: 20px;
       flex-grow: 1;
       max-height: 200px;
+      margin-top: 40px; /* Adjusted to account for store button */
     }
     .metric-box {
       background-color: #3A3A3A;
@@ -51,25 +69,20 @@
       border: 2px solid #FFFFFF;
       display: none; /* Hidden until first entry */
     }
-    #ctr-box {
+    #ctr-box, .ctr-box {
       box-shadow: 0 0 10px rgba(128, 0, 128, 0.7), 0 0 20px rgba(128, 0, 128, 0.5); /* Purple glow */
     }
-    #leads-box {
+    #leads-box, .leads-box {
       box-shadow: 0 0 10px rgba(75, 0, 130, 0.7), 0 0 20px rgba(75, 0, 130, 0.5); /* Blue-Purple glow */
     }
-    #booked-calls-box {
+    #booked-calls-box, .booked-calls-box {
       box-shadow: 0 0 10px rgba(0, 0, 255, 0.7), 0 0 20px rgba(0, 0, 255, 0.5); /* Blue glow */
     }
-    #showed-calls-box {
+    #showed-calls-box, .showed-calls-box {
       box-shadow: 0 0 10px rgba(0, 206, 209, 0.7), 0 0 20px rgba(0, 206, 209, 0.5); /* Green-Blue glow */
     }
-    #conversions-box {
+    #conversions-box, .conversions-box {
       box-shadow: 0 0 10px rgba(0, 128, 0, 0.7), 0 0 20px rgba(0, 128, 0, 0.5); /* Green glow */
-    }
-    .title {
-      text-align: center;
-      font-size: 20px;
-      margin: 10px 0;
     }
     .tabs {
       display: flex;
@@ -121,37 +134,29 @@
       flex-grow: 0;
       width: 90%;
       border: 2px solid #FFFFFF;
-      position: relative; /* For positioning the store button */
-    }
-    .store-btn {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      background-color: #FF4500;
-      border: none;
-      color: #FFFFFF;
-      padding: 4px 8px;
-      cursor: pointer;
-      font-size: 12px;
-      border-radius: 3px;
-      transition: background-color 0.3s;
-    }
-    .store-btn:hover {
-      background-color: #FF6347;
     }
     .storage-content {
       padding: 20px;
-      max-height: 400px;
+      max-height: calc(100vh - 60px);
       overflow-y: auto;
+      width: 90%;
+      margin: 0 auto;
     }
     .storage-content details {
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
     .storage-content summary {
       background-color: #4A4A4A;
       padding: 8px;
       border-radius: 5px;
       cursor: pointer;
+    }
+    .storage-content .metrics-container {
+      padding: 10px 0;
+      max-height: 180px;
+    }
+    .storage-content .daily-inputs {
+      margin: 0 auto 20px auto;
     }
     .storage-content table {
       width: 100%;
@@ -258,7 +263,7 @@
 </head>
 <body>
   <a href="https://dashboard-projectlegacy.vercel.app/setup.html" class="home-icon">🏠</a>
-  <div class="title">Cumulative Data</div>
+  <button class="store-btn" onclick="storeTab(currentTab)">Store</button>
   <div id="metrics-container" class="metrics-container">
     <div id="ctr-box" class="metric-box">
       <div>Clicks: <span id="cumulativeClicks">0</span></div>
@@ -286,7 +291,6 @@
       <div>CR: <span id="cumulativeConversionCR">0.0%</span></div>
     </div>
   </div>
-  <div class="title">Daily Data</div>
   <div class="tabs">
     <div class="tab-button active" onclick="openTab('tab1')">
       <input type="text" id="tabName1" value="Tab 1" onchange="updateTabName('tab1')">
@@ -308,7 +312,6 @@
   <div id="tab-content-container">
     <div id="tab1" class="tab-content active">
       <div class="daily-inputs">
-        <button class="store-btn" onclick="storeTab('tab1')">Store</button>
         <table id="tableTab1">
           <thead>
             <tr>
@@ -333,7 +336,6 @@
     </div>
     <div id="tab2" class="tab-content">
       <div class="daily-inputs">
-        <button class="store-btn" onclick="storeTab('tab2')">Store</button>
         <table id="tableTab2">
           <thead>
             <tr>
@@ -358,7 +360,6 @@
     </div>
     <div id="tab3" class="tab-content">
       <div class="daily-inputs">
-        <button class="store-btn" onclick="storeTab('tab3')">Store</button>
         <table id="tableTab3">
           <thead>
             <tr>
@@ -383,7 +384,6 @@
     </div>
     <div id="tab4" class="tab-content">
       <div class="daily-inputs">
-        <button class="store-btn" onclick="storeTab('tab4')">Store</button>
         <table id="tableTab4">
           <thead>
             <tr>
