@@ -412,16 +412,18 @@
 
     function initializeDashboard() {
       if (isFirebaseInitialized) {
-        // Load tab data with pre-initialization
+        // Load tab data and names with pre-initialization
         tabs.forEach(tab => {
           db.collection('users').doc(username).collection('tabs').doc(tab).get()
             .then(doc => {
               if (!doc.exists) {
+                const defaultData = { days: defaultDays, tabNames: { [tab]: `Tab ${tabs.indexOf(tab) + 1}` } };
                 return db.collection('users').doc(username).collection('tabs').doc(tab)
-                  .set({ days: defaultDays })
+                  .set(defaultData)
                   .then(() => {
                     console.log(`Initialized default data for ${username}/${tab}`);
                     renderTabData(tab, defaultDays);
+                    document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = defaultData.tabNames[tab];
                     if (tab === currentTab) {
                       updateCumulative(tab);
                     }
@@ -431,9 +433,14 @@
                 const data = doc.data();
                 if (data && data.days) {
                   renderTabData(tab, data.days);
-                  if (tab === currentTab) {
-                    updateCumulative(tab);
-                  }
+                }
+                if (data && data.tabNames && data.tabNames[tab]) {
+                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = data.tabNames[tab];
+                } else {
+                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
+                }
+                if (tab === currentTab) {
+                  updateCumulative(tab);
                 }
               }
             })
@@ -444,19 +451,17 @@
                   const data = doc.data();
                   if (data && data.days) {
                     renderTabData(tab, data.days);
-                    if (tab === currentTab) {
-                      updateCumulative(tab);
-                    }
-                  } else {
-                    console.warn(`No days data for ${username}/${tab}, using defaults`);
-                    renderTabData(tab, defaultDays);
-                    if (tab === currentTab) {
-                      updateCumulative(tab);
-                    }
+                  }
+                  if (data && data.tabNames && data.tabNames[tab]) {
+                    document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = data.tabNames[tab];
+                  }
+                  if (tab === currentTab) {
+                    updateCumulative(tab);
                   }
                 }, error => {
                   console.error(`Snapshot error for ${username}/${tab}:`, error);
                   renderTabData(tab, defaultDays);
+                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
                   if (tab === currentTab) {
                     updateCumulative(tab);
                   }
@@ -467,6 +472,7 @@
       } else {
         tabs.forEach(tab => {
           renderTabData(tab, defaultDays);
+          document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
           if (tab === currentTab) {
             updateCumulative(tab);
           }
@@ -474,12 +480,25 @@
       }
     }
 
-    // Update tab name
+    // Update tab name and save to Firebase
     function updateTabName(tab) {
       const tabIndex = tabs.indexOf(tab) + 1;
       const input = document.getElementById(`tabName${tabIndex}`);
       const newName = input.value.trim() || `Tab ${tabIndex}`;
       input.value = newName;
+
+      if (isFirebaseInitialized) {
+        db.collection('users').doc(username).collection('tabs').doc(tab).get()
+          .then(doc => {
+            const data = doc.exists ? doc.data() : { days: defaultDays, tabNames: {} };
+            data.tabNames = data.tabNames || {};
+            data.tabNames[tab] = newName;
+            return db.collection('users').doc(username).collection('tabs').doc(tab)
+              .set(data, { merge: true })
+              .catch(error => console.error(`Error updating tab name for ${username}/${tab}:`, error));
+          })
+          .catch(error => console.error(`Error fetching tab data for ${username}/${tab}:`, error));
+      }
     }
 
     // Render table data for a tab
