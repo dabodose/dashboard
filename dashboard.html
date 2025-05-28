@@ -14,7 +14,6 @@
       display: flex;
       flex-direction: column;
       position: relative; /* For positioning the store button */
-      margin-top: 60px; /* Increased by 20px (font-size of h2) from 40px */
     }
     .home-icon {
       position: absolute;
@@ -50,8 +49,14 @@
       flex-wrap: wrap;
       padding: 20px;
       flex-grow: 1;
-      max-height: 200px;
-      margin-top: 20px; /* Reduced from 40px to minimize spacing issues */
+      max-height: 240px; /* Increased to accommodate the title */
+      margin-top: 20px;
+    }
+    .metrics-container h2 {
+      width: 100%;
+      text-align: center;
+      margin: 0 0 10px 0; /* Space below the title */
+      font-size: 20px;
     }
     .metric-box {
       background-color: #3A3A3A;
@@ -281,16 +286,13 @@
       margin: 10px 0;
       font-size: 20px;
     }
-    h2:first-of-type { /* Targets the 'Cumulative' title */
-      margin-bottom: 10px; /* Adds space below 'Cumulative' */
-    }
   </style>
 </head>
 <body>
   <a href="https://dashboard-projectlegacy.vercel.app/setup.html" class="home-icon">🏠</a>
   <button class="store-btn" onclick="storeTab(currentTab)">Store</button>
-  <h2>Cumulative</h2>
   <div id="metrics-container" class="metrics-container">
+    <h2>Cumulative</h2>
     <div id="ctr-box" class="metric-box">
       <div>Clicks: <span id="cumulativeClicks">0</span></div>
       <div>CPC: <span id="cumulativeCPC">$0.0</span></div>
