@@ -14,6 +14,18 @@
       display: flex;
       flex-direction: column;
     }
+    .home-icon {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 24px;
+      color: #FFFFFF;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .home-icon:hover {
+      color: #00CED1;
+    }
     .metrics-container {
       display: flex;
       justify-content: center;
@@ -37,6 +49,7 @@
       flex-direction: column;
       justify-content: space-around;
       border: 2px solid #FFFFFF;
+      display: none; /* Hidden until first entry */
     }
     #ctr-box {
       box-shadow: 0 0 10px rgba(128, 0, 128, 0.7), 0 0 20px rgba(128, 0, 128, 0.5); /* Purple glow */
@@ -52,6 +65,11 @@
     }
     #conversions-box {
       box-shadow: 0 0 10px rgba(0, 128, 0, 0.7), 0 0 20px rgba(0, 128, 0, 0.5); /* Green glow */
+    }
+    .title {
+      text-align: center;
+      font-size: 20px;
+      margin: 10px 0;
     }
     .tabs {
       display: flex;
@@ -91,15 +109,11 @@
       text-align: center;
       padding: 0;
     }
-    .tab-button input:focus {
-      outline: none;
-      background-color: #5A5A5A;
-    }
     .daily-inputs {
       background-color: #3A3A3A;
       border-radius: 8px;
       padding: 20px;
-      margin: 20px auto;
+      margin: 12px auto;
       max-width: 1200px;
       max-height: 400px;
       overflow-y: auto;
@@ -168,6 +182,7 @@
       font-size: 12px;
       border-radius: 3px;
       transition: background-color 0.3s;
+      display: none; /* Hidden by default */
     }
     .delete-btn:hover {
       background-color: #FF6347;
@@ -197,6 +212,8 @@
   </style>
 </head>
 <body>
+  <a href="https://dashboard-projectlegacy.vercel.app/" class="home-icon">🏠</a>
+  <div class="title">Cumulative Data</div>
   <div id="metrics-container" class="metrics-container">
     <div id="ctr-box" class="metric-box">
       <div>Clicks: <span id="cumulativeClicks">0</span></div>
@@ -224,19 +241,19 @@
       <div>CR: <span id="cumulativeConversionCR">0.0%</span></div>
     </div>
   </div>
-
+  <div class="title">Daily Data</div>
   <div class="tabs">
     <div class="tab-button active" onclick="openTab('tab1')">
-      <input type="text" id="tabName1" value="Ad 1" onchange="updateTabName('tab1', this.value)">
+      <input type="text" id="tabName1" value="Tab 1" onchange="updateTabName('tab1')">
     </div>
     <div class="tab-button" onclick="openTab('tab2')">
-      <input type="text" id="tabName2" value="Ad 2" onchange="updateTabName('tab2', this.value)">
+      <input type="text" id="tabName2" value="Tab 2" onchange="updateTabName('tab2')">
     </div>
     <div class="tab-button" onclick="openTab('tab3')">
-      <input type="text" id="tabName3" value="Ad 3" onchange="updateTabName('tab3', this.value)">
+      <input type="text" id="tabName3" value="Tab 3" onchange="updateTabName('tab3')">
     </div>
     <div class="tab-button" onclick="openTab('tab4')">
-      <input type="text" id="tabName4" value="Ad 4" onchange="updateTabName('tab4', this.value)">
+      <input type="text" id="tabName4" value="Tab 4" onchange="updateTabName('tab4')">
     </div>
   </div>
 
@@ -368,11 +385,14 @@
       alert(`Failed to initialize Firebase: ${error.message}. The dashboard will load with limited functionality.`);
     }
 
-    // Get username from query parameter
+    // Get username from query parameter and load dashboard
     const urlParams = new URLSearchParams(window.location.search);
     username = urlParams.get('username') || 'defaultUser';
     if (!urlParams.get('username')) {
-      alert('No username provided. Using defaultUser. Please access this dashboard via the setup page with a username.');
+      alert('No username provided. Using defaultUser. Please access this dashboard with a username parameter.');
+    } else {
+      // Automatically initialize and load the dashboard
+      initializeDashboard();
     }
 
     // Global variables
@@ -386,122 +406,63 @@
 
     // Initialize data (with or without Firebase)
     const defaultDays = [
-      { date: currentDate, cost: 200, impressions: 10000, clicks: 100, leads: 20, bookedCalls: 2, showedCalls: 1, conversions: 1, name: "", extraRows: [] },
-      { date: `${monthNames[today.getMonth()]} ${today.getDate() + 1}`, cost: 300, impressions: 15000, clicks: 150, leads: 30, bookedCalls: 3, showedCalls: 2, conversions: 2, name: "", extraRows: [] }
+      { date: currentDate, cost: 0, impressions: 0, clicks: 0, leads: 0, bookedCalls: 0, showedCalls: 0, conversions: 0, name: "", extraRows: [] }
     ];
 
-    // Load tab names from Firestore or set defaults
-    const defaultTabNames = {
-      tab1: "Ad 1",
-      tab2: "Ad 2",
-      tab3: "Ad 3",
-      tab4: "Ad 4"
-    };
-
-    if (isFirebaseInitialized) {
-      // Ensure the tabNames document exists before attaching listener
-      db.collection('users').doc(username).collection('metadata').doc('tabNames').get()
-        .then(doc => {
-          if (!doc.exists) {
-            return db.collection('users').doc(username).collection('metadata').doc('tabNames')
-              .set({ names: defaultTabNames })
-              .catch(error => console.error(`Error initializing tab names for ${username}:`, error));
-          }
-        })
-        .then(() => {
-          // Attach listener after ensuring document exists
-          return db.collection('users').doc(username).collection('metadata').doc('tabNames')
-            .onSnapshot(doc => {
-              const data = doc.data();
-              if (data && data.names) {
-                tabs.forEach(tab => {
-                  const input = document.getElementById(`tabName${tabs.indexOf(tab) + 1}`);
-                  input.value = data.names[tab] || defaultTabNames[tab];
-                });
-              } else {
-                console.warn(`No tab names data for ${username}, using defaults`);
-                tabs.forEach(tab => {
-                  const input = document.getElementById(`tabName${tabs.indexOf(tab) + 1}`);
-                  input.value = defaultTabNames[tab];
-                });
+    function initializeDashboard() {
+      if (isFirebaseInitialized) {
+        // Load tab data with pre-initialization
+        tabs.forEach(tab => {
+          db.collection('users').doc(username).collection('tabs').doc(tab).get()
+            .then(doc => {
+              if (!doc.exists) {
+                return db.collection('users').doc(username).collection('tabs').doc(tab)
+                  .set({ days: defaultDays })
+                  .catch(error => console.error(`Error setting initial data for ${username}/${tab}:`, error));
               }
-            }, error => {
-              console.error(`Snapshot error for tab names ${username}:`, error);
-              // Fallback to defaults on error
-              tabs.forEach(tab => {
-                const input = document.getElementById(`tabName${tabs.indexOf(tab) + 1}`);
-                input.value = defaultTabNames[tab];
-              });
-            });
-        })
-        .catch(error => console.error(`Error setting up tab names listener for ${username}:`, error));
-
-      // Load tab data with pre-initialization
-      tabs.forEach(tab => {
-        db.collection('users').doc(username).collection('tabs').doc(tab).get()
-          .then(doc => {
-            if (!doc.exists) {
+            })
+            .then(() => {
               return db.collection('users').doc(username).collection('tabs').doc(tab)
-                .set({ days: defaultDays })
-                .catch(error => console.error(`Error setting initial data for ${username}/${tab}:`, error));
-            }
-          })
-          .then(() => {
-            return db.collection('users').doc(username).collection('tabs').doc(tab)
-              .onSnapshot(doc => {
-                const data = doc.data();
-                if (data && data.days) {
-                  renderTabData(tab, data.days);
-                  if (tab === currentTab) {
-                    updateCumulative(tab);
+                .onSnapshot(doc => {
+                  const data = doc.data();
+                  if (data && data.days) {
+                    renderTabData(tab, data.days);
+                    if (tab === currentTab) {
+                      updateCumulative(tab);
+                    }
+                  } else {
+                    console.warn(`No days data for ${username}/${tab}, using defaults`);
+                    renderTabData(tab, defaultDays);
+                    if (tab === currentTab) {
+                      updateCumulative(tab);
+                    }
                   }
-                } else {
-                  console.warn(`No days data for ${username}/${tab}, using defaults`);
+                }, error => {
+                  console.error(`Snapshot error for ${username}/${tab}:`, error);
                   renderTabData(tab, defaultDays);
                   if (tab === currentTab) {
                     updateCumulative(tab);
                   }
-                }
-              }, error => {
-                console.error(`Snapshot error for ${username}/${tab}:`, error);
-                // Fallback to defaults on error
-                renderTabData(tab, defaultDays);
-                if (tab === currentTab) {
-                  updateCumulative(tab);
-                }
-              });
-          })
-          .catch(error => console.error(`Error setting up tab data listener for ${username}/${tab}:`, error));
-      });
-    } else {
-      tabs.forEach(tab => {
-        renderTabData(tab, defaultDays);
-        if (tab === currentTab) {
-          updateCumulative(tab);
-        }
-      });
+                });
+            })
+            .catch(error => console.error(`Error setting up tab data listener for ${username}/${tab}:`, error));
+        });
+      } else {
+        tabs.forEach(tab => {
+          renderTabData(tab, defaultDays);
+          if (tab === currentTab) {
+            updateCumulative(tab);
+          }
+        });
+      }
     }
 
-    // Function to update tab name in Firestore
-    function updateTabName(tab, newName) {
-      if (!isFirebaseInitialized) {
-        const input = document.getElementById(`tabName${tabs.indexOf(tab) + 1}`);
-        input.value = newName.trim() || defaultTabNames[tab];
-        return;
-      }
-      if (!newName.trim()) {
-        alert('Tab name cannot be empty.');
-        document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = defaultTabNames[tab];
-        return;
-      }
-
-      db.collection('users').doc(username).collection('metadata').doc('tabNames')
-        .set({ names: { [tab]: newName.trim() } }, { merge: true })
-        .catch(error => {
-          console.error(`Error updating tab name for ${username}/${tab}:`, error);
-          alert(`Failed to update tab name: ${error.message}. Please try again.`);
-          document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = defaultTabNames[tab];
-        });
+    // Update tab name
+    function updateTabName(tab) {
+      const tabIndex = tabs.indexOf(tab) + 1;
+      const input = document.getElementById(`tabName${tabIndex}`);
+      const newName = input.value.trim() || `Tab ${tabIndex}`;
+      input.value = newName;
     }
 
     // Render table data for a tab
@@ -514,24 +475,29 @@
       tbody.innerHTML = '';
       days.forEach((day, index) => {
         const row = document.createElement('tr');
-        const cpm = day.impressions ? ((day.cost / day.impressions) * 1000).toFixed(2) : '0.00';
-        const ctr = day.impressions ? ((day.clicks / day.impressions) * 100).toFixed(2) : '0.00';
+        const cpm = day.impressions ? ((day.cost / day.impressions) * 1000).toFixed(2) : '—';
+        const ctr = day.impressions ? ((day.clicks / day.impressions) * 100).toFixed(2) : '—';
         const onChangeHandler = isFirebaseInitialized ? `updateFirestore('${tab}', ${index})` : `updateCumulative('${tab}')`;
-        const nameDisabled = day.bookedCalls === 0 ? ' disabled' : '';
+        const nameDisabled = day.bookedCalls === 0;
         const nameValue = day.bookedCalls === 0 ? '' : (day.name || '');
+        const isEmpty = !day.cost && !day.impressions && !day.clicks && !day.leads && !day.bookedCalls && !day.showedCalls && !day.conversions && !day.name;
         row.innerHTML = `
           <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.date}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="costDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.cost || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" class="calculated" readonly value="$${cpm}" title="Calculated as (Cost / Impressions) * 1000"></td>
+          <td><input type="text" class="calculated" readonly value="${cpm}"></td>
           <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.impressions || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" class="calculated" readonly value="${ctr}%" title="Calculated as (Clicks / Impressions) * 100"></td>
+          <td><input type="text" class="calculated" readonly value="${ctr}"></td>
           <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.clicks || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.leads || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.bookedCalls || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.showedCalls || 0}" onchange="${onChangeHandler}"></td>
           <td><input type="text" id="conversionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.conversions || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" id="nameDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${nameValue}"${nameDisabled} onchange="${onChangeHandler}"></td>
-          <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})">X</button></td>
+          <td>
+            ${nameDisabled ? '—' : `
+              <input type="text" id="nameDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${nameValue}" onchange="${onChangeHandler}">
+            `}
+          </td>
+          <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})" style="${isEmpty ? 'display: inline;' : 'display: none;'}">X</button></td>
         `;
         tbody.appendChild(row);
 
@@ -551,7 +517,9 @@
               <td></td>
               <td><input type="text" id="extraShowedCallsDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.showedCalls || 0}" onchange="${onChangeHandler}"></td>
               <td><input type="text" id="extraConversionsDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.conversions || 0}" onchange="${onChangeHandler}"></td>
-              <td><input type="text" id="extraNameDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.name || ''}" onchange="${onChangeHandler}"></td>
+              <td>
+                <input type="text" id="extraNameDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.name || ''}" onchange="${onChangeHandler}">
+              </td>
               <td></td>
             `;
             tbody.appendChild(extraRow);
@@ -572,13 +540,12 @@
       const bookedCalls = parseFloat(document.getElementById(`bookedCallsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const showedCalls = parseFloat(document.getElementById(`showedCallsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
       const conversions = parseFloat(document.getElementById(`conversionsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const name = document.getElementById(`nameDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value || '';
+      const name = bookedCalls === 0 ? '' : (document.getElementById(`nameDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || '');
 
       db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
         if (doc.exists) {
           const days = doc.data().days;
           if (days && days[dayIndex]) {
-            // Update main row data
             days[dayIndex] = {
               date: date,
               cost: cost,
@@ -592,12 +559,9 @@
               extraRows: days[dayIndex].extraRows || []
             };
 
-            // Adjust extraRows array based on bookedCalls
             if (bookedCalls <= 1) {
               days[dayIndex].extraRows = [];
             } else {
-              // Resize extraRows to match bookedCalls
-              const currentExtraRows = days[dayIndex].extraRows || [];
               const newExtraRows = [];
               for (let i = 1; i < bookedCalls; i++) {
                 const extraShowedCalls = parseFloat(document.getElementById(`extraShowedCallsDay${dayIndex + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value) || 0;
@@ -612,7 +576,6 @@
               days[dayIndex].extraRows = newExtraRows;
             }
 
-            // Save the updated days array to Firestore
             db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
               .catch(error => console.error(`Firestore update error for ${username}/${tab}, day ${dayIndex}:`, error));
           }
@@ -662,15 +625,15 @@
         row.innerHTML = `
           <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${newDate}" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="costDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" class="calculated" readonly value="$0.00" title="Calculated as (Cost / Impressions) * 1000"></td>
+          <td><input type="text" class="calculated" readonly value="—" title="Calculated as (Cost / Impressions) * 1000"></td>
           <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" class="calculated" readonly value="0%" title="Calculated as (Clicks / Impressions) * 100"></td>
+          <td><input type="text" class="calculated" readonly value="—" title="Calculated as (Clicks / Impressions) * 100"></td>
           <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
           <td><input type="text" id="conversionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" id="nameDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="" disabled></td>
+          <td>—</td>
           <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})">X</button></td>
         `;
         tbody.appendChild(row);
@@ -735,6 +698,7 @@
           if (doc.exists) {
             const days = doc.data().days || [];
             let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
+            let hasData = false;
 
             days.forEach(day => {
               totalImpressions += day.impressions || 0;
@@ -750,7 +714,15 @@
                   totalConversions += extra.conversions || 0;
                 });
               }
+              if (day.cost || day.impressions || day.clicks || day.leads || day.bookedCalls || day.showedCalls || day.conversions) {
+                hasData = true;
+              }
             });
+
+            const metricBoxes = document.getElementsByClassName('metric-box');
+            for (let box of metricBoxes) {
+              box.style.display = hasData ? 'flex' : 'none';
+            }
 
             const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
             const cpc = totalClicks ? (totalCost / totalClicks).toFixed(1) : 0;
@@ -784,6 +756,7 @@
         const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
         const rows = tbody.getElementsByTagName('tr');
         let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
+        let hasData = false;
 
         for (let i = 0; i < rows.length; i++) {
           const bookedCalls = parseFloat(document.getElementById(`bookedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
@@ -795,11 +768,25 @@
           totalCost += parseFloat(document.getElementById(`costDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
           totalConversions += parseFloat(document.getElementById(`conversionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
 
-          // Loop through extra rows for this day
+          if (document.getElementById(`costDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
+              document.getElementById(`impressionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
+              document.getElementById(`clicksDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
+              document.getElementById(`leadsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
+              document.getElementById(`bookedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
+              document.getElementById(`showedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
+              document.getElementById(`conversionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) {
+            hasData = true;
+          }
+
           for (let j = 1; j < bookedCalls; j++) {
             totalShowedCalls += parseFloat(document.getElementById(`extraShowedCallsDay${i + 1}_${j}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || 0);
             totalConversions += parseFloat(document.getElementById(`extraConversionsDay${i + 1}_${j}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || 0);
           }
+        }
+
+        const metricBoxes = document.getElementsByClassName('metric-box');
+        for (let box of metricBoxes) {
+          box.style.display = hasData ? 'flex' : 'none';
         }
 
         const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
