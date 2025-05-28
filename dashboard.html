@@ -212,7 +212,7 @@
   </style>
 </head>
 <body>
-  <a href="https://dashboard-projectlegacy.vercel.app/" class="home-icon">🏠</a>
+  <a href="https://dashboard-projectlegacy.vercel.app/setup.html" class="home-icon">🏠</a>
   <div class="title">Cumulative Data</div>
   <div id="metrics-container" class="metrics-container">
     <div id="ctr-box" class="metric-box">
@@ -375,6 +375,21 @@
     let isFirebaseInitialized = false;
     let username;
 
+    // Global variables (moved to the top)
+    let currentTab = 'tab1';
+    const tabs = ['tab1', 'tab2', 'tab3', 'tab4'];
+
+    // Get the current date in "Month Day" format (e.g., "May 27")
+    const today = new Date();
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const currentDate = `${monthNames[today.getMonth()]} ${today.getDate()}`;
+
+    // Initialize data (with or without Firebase)
+    const defaultDays = [
+      { date: currentDate, cost: 0, impressions: 0, clicks: 0, leads: 0, bookedCalls: 0, showedCalls: 0, conversions: 0, name: "", extraRows: [] }
+    ];
+
+    // Firebase initialization
     try {
       const app = firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
@@ -395,20 +410,6 @@
       initializeDashboard();
     }
 
-    // Global variables
-    let currentTab = 'tab1';
-    const tabs = ['tab1', 'tab2', 'tab3', 'tab4'];
-
-    // Get the current date in "Month Day" format (e.g., "May 27")
-    const today = new Date();
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentDate = `${monthNames[today.getMonth()]} ${today.getDate()}`;
-
-    // Initialize data (with or without Firebase)
-    const defaultDays = [
-      { date: currentDate, cost: 0, impressions: 0, clicks: 0, leads: 0, bookedCalls: 0, showedCalls: 0, conversions: 0, name: "", extraRows: [] }
-    ];
-
     function initializeDashboard() {
       if (isFirebaseInitialized) {
         // Load tab data with pre-initialization
@@ -418,10 +419,26 @@
               if (!doc.exists) {
                 return db.collection('users').doc(username).collection('tabs').doc(tab)
                   .set({ days: defaultDays })
+                  .then(() => {
+                    console.log(`Initialized default data for ${username}/${tab}`);
+                    renderTabData(tab, defaultDays);
+                    if (tab === currentTab) {
+                      updateCumulative(tab);
+                    }
+                  })
                   .catch(error => console.error(`Error setting initial data for ${username}/${tab}:`, error));
+              } else {
+                const data = doc.data();
+                if (data && data.days) {
+                  renderTabData(tab, data.days);
+                  if (tab === currentTab) {
+                    updateCumulative(tab);
+                  }
+                }
               }
             })
             .then(() => {
+              // Set up real-time listener
               return db.collection('users').doc(username).collection('tabs').doc(tab)
                 .onSnapshot(doc => {
                   const data = doc.data();
