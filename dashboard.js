@@ -372,6 +372,9 @@ function openTab(tabName) {
   document.getElementById(tabName).classList.add('active');
   document.getElementsByClassName('tab-button')[tabs.indexOf(tabName)].classList.add('active');
   updateCumulative(tabName);
+  // Show/hide the Store button based on the current tab
+  const storeBtn = document.querySelector('.store-btn');
+  storeBtn.style.display = (tabName === 'tab5') ? 'none' : 'block';
 }
 
 function updateCumulative(tab) {
@@ -581,67 +584,132 @@ function loadArchivedData() {
         querySnapshot.forEach(doc => {
           const data = doc.data();
           console.log(`Archived data for ${data.tabName}:`, data); // Debugging log
-          
+
           // Check if data.days exists and is an array; if not, provide a fallback
           const days = Array.isArray(data.days) && data.days.length > 0 ? data.days : [];
-          
+
+          // Calculate cumulative metrics for this archived dataset
+          let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
+          let hasData = false;
+
+          days.forEach(day => {
+            totalImpressions += day.impressions || 0;
+            totalClicks += day.clicks || 0;
+            totalLeads += day.leads || 0;
+            totalBookedCalls += day.bookedCalls || 0;
+            totalShowedCalls += day.showedCalls || 0;
+            totalCost += day.cost || 0;
+            totalConversions += day.conversions || 0;
+            if (day.extraRows) {
+              day.extraRows.forEach(extra => {
+                totalShowedCalls += extra.showedCalls || 0;
+                totalConversions += extra.conversions || 0;
+              });
+            }
+            if (day.cost || day.impressions || day.clicks || day.leads || day.bookedCalls || day.showedCalls || day.conversions) {
+              hasData = true;
+            }
+          });
+
+          const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
+          const cpc = totalClicks ? (totalCost / totalClicks).toFixed(1) : 0;
+          const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(1) : 0;
+          const cpl = totalLeads ? (totalCost / totalLeads).toFixed(1) : 0;
+          const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(1) : 0;
+          const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
+          const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
+          const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
+          const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
+          const conversionCR = totalShowedCalls ? (totalConversions / totalShowedCalls * 100).toFixed(1) : 0;
+
+          const archiveId = doc.id; // Unique ID for this archive to avoid DOM conflicts
+
           const details = document.createElement('details');
           details.innerHTML = `
             <summary>${data.tabName || 'Unknown Tab'} - ${data.timestamp || 'Unknown Date'}</summary>
             ${days.length > 0 ? `
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Cost ($)</th>
-                    <th>CPM</th>
-                    <th>Imp.</th>
-                    <th>CTR</th>
-                    <th>Clicks</th>
-                    <th>Leads</th>
-                    <th>Booked Calls</th>
-                    <th>Showed Calls</th>
-                    <th>Sales</th>
-                    <th>Name</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${days.map((day, index) => {
-                    const cpm = day.impressions ? `$${(day.cost / day.impressions * 1000).toFixed(2)}` : '—';
-                    const ctr = day.impressions ? `${(day.clicks / day.impressions * 100).toFixed(2)}%` : '—';
-                    return `
-                      <tr>
-                        <td>${day.date || '—'}</td>
-                        <td>${day.cost || 0}</td>
-                        <td><input type="text" class="calculated" readonly value="${cpm}"></td>
-                        <td>${day.impressions || 0}</td>
-                        <td><input type="text" class="calculated" readonly value="${ctr}"></td>
-                        <td>${day.clicks || 0}</td>
-                        <td>${day.leads || 0}</td>
-                        <td>${day.bookedCalls || 0}</td>
-                        <td>${day.showedCalls || 0}</td>
-                        <td>${day.conversions || 0}</td>
-                        <td>${day.name || '—'}</td>
-                      </tr>
-                      ${(Array.isArray(day.extraRows) ? day.extraRows : []).map((extra, i) => `
+              <div class="metrics-container">
+                <div class="metric-box ctr-box" style="display: ${hasData ? 'flex' : 'none'};">
+                  <div>Clicks: <span id="archiveClicks${archiveId}">${totalClicks}</span></div>
+                  <div>CPC: <span id="archiveCPC${archiveId}">$${cpc}</span></div>
+                  <div>CTR: <span id="archiveCTR${archiveId}">${ctr}%</span></div>
+                </div>
+                <div class="metric-box leads-box" style="display: ${hasData ? 'flex' : 'none'};">
+                  <div>Leads: <span id="archiveLeads${archiveId}">${totalLeads}</span></div>
+                  <div>CPL: <span id="archiveCPL${archiveId}">$${cpl}</span></div>
+                  <div>CR: <span id="archiveConversionRate${archiveId}">${conversionRate}%</span></div>
+                </div>
+                <div class="metric-box booked-calls-box" style="display: ${hasData ? 'flex' : 'none'};">
+                  <div>Booked Calls: <span id="archiveBookedCalls${archiveId}">${totalBookedCalls}</span></div>
+                  <div>Cost: <span id="archiveCostPerBookedCall${archiveId}">$${costPerBookedCall}</span></div>
+                  <div>CR: <span id="archiveBookingConversionRate${archiveId}">${bookingConversionRate}%</span></div>
+                </div>
+                <div class="metric-box showed-calls-box" style="display: ${hasData ? 'flex' : 'none'};">
+                  <div>Showed Calls: <span id="archiveShowedCalls${archiveId}">${totalShowedCalls}</span></div>
+                  <div>Cost: <span id="archiveCostPerShowedCall${archiveId}">$${costPerShowedCall}</span></div>
+                  <div>CR: <span id="archiveShowRate${archiveId}">${showRate}%</span></div>
+                </div>
+                <div class="metric-box conversions-box" style="display: ${hasData ? 'flex' : 'none'};">
+                  <div>Sales: <span id="archiveConversions${archiveId}">${totalConversions}</span></div>
+                  <div>Cost: <span id="archiveCostPerConversion${archiveId}">$${costPerConversion}</span></div>
+                  <div>CR: <span id="archiveConversionCR${archiveId}">${conversionCR}%</span></div>
+                </div>
+              </div>
+              <div class="daily-inputs">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Cost ($)</th>
+                      <th>CPM</th>
+                      <th>Imp.</th>
+                      <th>CTR</th>
+                      <th>Clicks</th>
+                      <th>Leads</th>
+                      <th>Booked Calls</th>
+                      <th>Showed Calls</th>
+                      <th>Sales</th>
+                      <th>Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${days.map((day, index) => {
+                      const cpm = day.impressions ? `$${(day.cost / day.impressions * 1000).toFixed(2)}` : '—';
+                      const ctr = day.impressions ? `${(day.clicks / day.impressions * 100).toFixed(2)}%` : '—';
+                      return `
                         <tr>
-                          <td><hr class="derived-line"></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td>${extra.showedCalls || 0}</td>
-                          <td>${extra.conversions || 0}</td>
-                          <td>${extra.name || ''}</td>
+                          <td>${day.date || '—'}</td>
+                          <td>${day.cost || 0}</td>
+                          <td><input type="text" class="calculated" readonly value="${cpm}"></td>
+                          <td>${day.impressions || 0}</td>
+                          <td><input type="text" class="calculated" readonly value="${ctr}"></td>
+                          <td>${day.clicks || 0}</td>
+                          <td>${day.leads || 0}</td>
+                          <td>${day.bookedCalls || 0}</td>
+                          <td>${day.showedCalls || 0}</td>
+                          <td>${day.conversions || 0}</td>
+                          <td>${day.name || '—'}</td>
                         </tr>
-                      `).join('')}
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
+                        ${(Array.isArray(day.extraRows) ? day.extraRows : []).map((extra, i) => `
+                          <tr>
+                            <td><hr class="derived-line"></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>${extra.showedCalls || 0}</td>
+                            <td>${extra.conversions || 0}</td>
+                            <td>${extra.name || ''}</td>
+                          </tr>
+                        `).join('')}
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
             ` : '<p>No data available for this archive.</p>'}
           `;
           storageContent.appendChild(details);
