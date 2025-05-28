@@ -60,7 +60,7 @@ function initializeDashboard() {
               .then(() => {
                 console.log(`Initialized default data for ${username}/${tab}`);
                 renderTabData(tab, defaultDays);
-                document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = defaultData.tabNames[tab];
+                document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = defaultData.tabNames[tab];
                 if (tab === currentTab) {
                   updateCumulative(tab);
                 }
@@ -68,7 +68,7 @@ function initializeDashboard() {
               .catch(error => {
                 console.error(`Error initializing data for ${username}/${tab}:`, error.message);
                 renderTabData(tab, defaultDays);
-                document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
+                document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = `Tab ${tabs.indexOf(tab) + 1}`;
                 if (tab === currentTab) {
                   updateCumulative(tab);
                 }
@@ -80,7 +80,7 @@ function initializeDashboard() {
             const data = doc.data();
             const days = (data && data.days) ? data.days : defaultDays;
             renderTabData(tab, days);
-            document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = (data && data.tabNames && data.tabNames[tab]) ? data.tabNames[tab] : `Tab ${tabs.indexOf(tab) + 1}`;
+            document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = (data && data.tabNames && data.tabNames[tab]) ? data.tabNames[tab] : `Tab ${tabs.indexOf(tab) + 1}`;
             if (tab === currentTab) {
               updateCumulative(tab);
             }
@@ -90,7 +90,7 @@ function initializeDashboard() {
           console.error(`Error loading data for ${username}/${tab}:`, error.message);
           if (tab !== 'tab5') {
             renderTabData(tab, defaultDays);
-            document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
+            document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = `Tab ${tabs.indexOf(tab) + 1}`;
             if (tab === currentTab) {
               updateCumulative(tab);
             }
@@ -104,7 +104,7 @@ function initializeDashboard() {
                 const days = (data && data.days) ? data.days : defaultDays;
                 renderTabData(tab, days);
                 if (data && data.tabNames && data.tabNames[tab]) {
-                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = data.tabNames[tab];
+                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = data.tabNames[tab];
                 }
                 if (tab === currentTab) {
                   updateCumulative(tab);
@@ -121,7 +121,7 @@ function initializeDashboard() {
     } else {
       if (tab !== 'tab5') {
         renderTabData(tab, defaultDays);
-        document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
+        document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = `Tab ${tabs.indexOf(tab) + 1}`;
         if (tab === currentTab) {
           updateCumulative(tab);
         }
@@ -132,13 +132,39 @@ function initializeDashboard() {
   });
 }
 
-function updateTabName(tab) {
+function editTabName(tab) {
   const tabIndex = tabs.indexOf(tab) + 1;
-  const input = document.getElementById(`tabName${tabIndex}`);
-  const newName = input.value.trim() || `Tab ${tabIndex}`;
-  input.value = newName;
+  if (tab === 'tab5') return; // Prevent editing Storage tab
 
-  if (isFirebaseInitialized && tab !== 'tab5') {
+  const span = document.getElementById(`tabName${tabIndex}`);
+  const currentName = span.textContent;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.style.width = '100%';
+  input.style.textAlign = 'center';
+  input.style.backgroundColor = '#4A4A4A';
+  input.style.color = '#FFFFFF';
+  input.style.border = 'none';
+  input.style.padding = '0';
+  input.style.fontSize = '16px';
+  input.onblur = () => saveTabName(tab, input);
+  input.onkeypress = (e) => { if (e.key === 'Enter') saveTabName(tab, input); };
+
+  span.replaceWith(input);
+  input.focus();
+}
+
+function saveTabName(tab, input) {
+  const tabIndex = tabs.indexOf(tab) + 1;
+  const newName = input.value.trim() || `Tab ${tabIndex}`;
+  const span = document.createElement('span');
+  span.id = `tabName${tabIndex}`;
+  span.textContent = newName;
+  span.ondblclick = () => editTabName(tab);
+  input.replaceWith(span);
+
+  if (isFirebaseInitialized) {
     db.collection('users').doc(username).collection('tabs').doc(tab).update({
       [`tabNames.${tab}`]: newName
     })
@@ -374,11 +400,13 @@ function openTab(tabName) {
   document.getElementById(tabName).classList.add('active');
   document.getElementsByClassName('tab-button')[tabs.indexOf(tabName)].classList.add('active');
   
-  // Hide metrics container for Storage tab, show for others
+  // Hide metrics container and titles for Storage tab, show for others
   if (tabName === 'tab5') {
     metricsContainer.style.display = 'none';
+    document.querySelectorAll('h2').forEach(h2 => h2.style.display = 'none');
   } else {
     metricsContainer.style.display = 'flex';
+    document.querySelectorAll('h2').forEach(h2 => h2.style.display = 'block');
     updateCumulative(tabName);
   }
   
@@ -528,7 +556,7 @@ function storeTab(tab) {
       if (doc.exists) {
         const data = doc.data();
         const days = data.days || defaultDays;
-        const tabName = document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value || `Tab ${tabs.indexOf(tab) + 1}`;
+        const tabName = document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent || `Tab ${tabs.indexOf(tab) + 1}`;
         const timestamp = new Date().toLocaleString();
         const archiveId = `${tab}_${Date.now()}`; // Unique ID based on tab and timestamp
 
