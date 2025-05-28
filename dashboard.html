@@ -114,6 +114,10 @@
     .tab-button.active {
       background-color: #00CED1;
     }
+    .tab-button span {
+      display: inline-block;
+      cursor: pointer;
+    }
     .tab-button input {
       background-color: inherit;
       border: none;
@@ -122,6 +126,8 @@
       width: 100%;
       text-align: center;
       padding: 0;
+      margin: 0;
+      box-sizing: border-box;
     }
     .tab-button #tabName5 {
       pointer-events: none; /* Makes the input non-interactive, so the parent button handles clicks */
@@ -269,6 +275,11 @@
     .add-day-button:hover {
       background-color: #00B7C2;
     }
+    h2 {
+      text-align: center;
+      margin: 10px 0;
+      font-size: 20px;
+    }
   </style>
 </head>
 <body>
@@ -303,16 +314,16 @@
   </div>
   <div class="tabs">
     <div class="tab-button active" onclick="openTab('tab1')">
-      <input type="text" id="tabName1" value="Tab 1" onchange="updateTabName('tab1')">
+      <span id="tabName1" ondblclick="editTabName('tab1')">Tab 1</span>
     </div>
     <div class="tab-button" onclick="openTab('tab2')">
-      <input type="text" id="tabName2" value="Tab 2" onchange="updateTabName('tab2')">
+      <span id="tabName2" ondblclick="editTabName('tab2')">Tab 2</span>
     </div>
     <div class="tab-button" onclick="openTab('tab3')">
-      <input type="text" id="tabName3" value="Tab 3" onchange="updateTabName('tab3')">
+      <span id="tabName3" ondblclick="editTabName('tab3')">Tab 3</span>
     </div>
     <div class="tab-button" onclick="openTab('tab4')">
-      <input type="text" id="tabName4" value="Tab 4" onchange="updateTabName('tab4')">
+      <span id="tabName4" ondblclick="editTabName('tab4')">Tab 4</span>
     </div>
     <div class="tab-button" onclick="openTab('tab5')">
       <input type="text" id="tabName5" value="Storage" onchange="updateTabName('tab5')" disabled>
@@ -321,6 +332,9 @@
 
   <div id="tab-content-container">
     <div id="tab1" class="tab-content active">
+      <h2>Cumulative Data</h2>
+      <div id="metrics-container" class="metrics-container"></div>
+      <h2>Daily Data</h2>
       <div class="daily-inputs">
         <table id="tableTab1">
           <thead>
@@ -345,6 +359,9 @@
       </div>
     </div>
     <div id="tab2" class="tab-content">
+      <h2>Cumulative Data</h2>
+      <div id="metrics-container" class="metrics-container"></div>
+      <h2>Daily Data</h2>
       <div class="daily-inputs">
         <table id="tableTab2">
           <thead>
@@ -369,6 +386,9 @@
       </div>
     </div>
     <div id="tab3" class="tab-content">
+      <h2>Cumulative Data</h2>
+      <div id="metrics-container" class="metrics-container"></div>
+      <h2>Daily Data</h2>
       <div class="daily-inputs">
         <table id="tableTab3">
           <thead>
@@ -393,6 +413,9 @@
       </div>
     </div>
     <div id="tab4" class="tab-content">
+      <h2>Cumulative Data</h2>
+      <div id="metrics-container" class="metrics-container"></div>
+      <h2>Daily Data</h2>
       <div class="daily-inputs">
         <table id="tableTab4">
           <thead>
