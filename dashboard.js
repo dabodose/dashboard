@@ -365,13 +365,23 @@ function openTab(tabName) {
   currentTab = tabName;
   const tabContents = document.getElementsByClassName('tab-content');
   const tabButtons = document.getElementsByClassName('tab-button');
+  const metricsContainer = document.getElementById('metrics-container');
+  
   for (let i = 0; i < tabContents.length; i++) {
     tabContents[i].classList.remove('active');
     tabButtons[i].classList.remove('active');
   }
   document.getElementById(tabName).classList.add('active');
   document.getElementsByClassName('tab-button')[tabs.indexOf(tabName)].classList.add('active');
-  updateCumulative(tabName);
+  
+  // Hide metrics container for Storage tab, show for others
+  if (tabName === 'tab5') {
+    metricsContainer.style.display = 'none';
+  } else {
+    metricsContainer.style.display = 'flex';
+    updateCumulative(tabName);
+  }
+  
   // Show/hide the Store button based on the current tab
   const storeBtn = document.querySelector('.store-btn');
   storeBtn.style.display = (tabName === 'tab5') ? 'none' : 'block';
@@ -572,6 +582,20 @@ function storeTab(tab) {
     });
 }
 
+function deleteArchivedData(archiveId) {
+  if (!isFirebaseInitialized) return;
+
+  db.collection('users').doc(username).collection('archivedTabs').doc(archiveId).delete()
+    .then(() => {
+      console.log(`Deleted archived data with ID ${archiveId} for ${username}`);
+      loadArchivedData(); // Refresh the Storage tab
+    })
+    .catch(error => {
+      console.error(`Error deleting archived data with ID ${archiveId} for ${username}:`, error.message);
+      alert(`Failed to delete archived data: ${error.message}`);
+    });
+}
+
 function loadArchivedData() {
   const storageContent = document.getElementById('storageContent');
   if (!storageContent) return;
@@ -626,7 +650,10 @@ function loadArchivedData() {
 
           const details = document.createElement('details');
           details.innerHTML = `
-            <summary>${data.tabName || 'Unknown Tab'} - ${data.timestamp || 'Unknown Date'}</summary>
+            <summary>
+              <span>${data.tabName || 'Unknown Tab'} - ${data.timestamp || 'Unknown Date'}</span>
+              <button class="delete-archive-btn" onclick="deleteArchivedData('${archiveId}')">Delete</button>
+            </summary>
             ${days.length > 0 ? `
               <div class="metrics-container">
                 <div class="metric-box ctr-box" style="display: ${hasData ? 'flex' : 'none'};">
