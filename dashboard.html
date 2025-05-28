@@ -93,6 +93,7 @@
       flex: 1;
       margin: 0 5px;
       text-align: center;
+      position: relative;
     }
     .tab-button:hover {
       background-color: #5A5A5A;
@@ -109,6 +110,22 @@
       text-align: center;
       padding: 0;
     }
+    .store-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: #FF4500;
+      border: none;
+      color: #FFFFFF;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 3px;
+      transition: background-color 0.3s;
+    }
+    .store-btn:hover {
+      background-color: #FF6347;
+    }
     .daily-inputs {
       background-color: #3A3A3A;
       border-radius: 8px;
@@ -121,12 +138,31 @@
       width: 90%;
       border: 2px solid #FFFFFF;
     }
+    .storage-content {
+      padding: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .storage-content details {
+      margin-bottom: 10px;
+    }
+    .storage-content summary {
+      background-color: #4A4A4A;
+      padding: 8px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .storage-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
     .daily-inputs table {
       width: 100%;
       border-collapse: collapse;
       margin: 0 auto;
     }
-    .daily-inputs th, .daily-inputs td {
+    .daily-inputs th, .daily-inputs td, .storage-content th, .storage-content td {
       padding: 8px;
       text-align: center;
       border: 1px solid #4A4A4A;
@@ -134,7 +170,7 @@
       height: 40px;
       box-sizing: border-box;
     }
-    .daily-inputs th:nth-child(11), .daily-inputs td:nth-child(11) {
+    .daily-inputs th:nth-child(11), .daily-inputs td:nth-child(11), .storage-content th:nth-child(11), .storage-content td:nth-child(11) {
       width: 150px;
     }
     .daily-inputs input {
@@ -152,6 +188,9 @@
     .daily-inputs input.date-input {
       width: 80px;
     }
+    .daily-inputs input.name-input {
+      width: calc(100% - 10px); /* Wider input for name field */
+    }
     .daily-inputs th {
       background-color: #2E2E2E;
       position: sticky;
@@ -159,6 +198,11 @@
       z-index: 1;
     }
     .daily-inputs .calculated {
+      background-color: #2E2E2E;
+      color: #A0A0A0;
+      cursor: default;
+    }
+    .storage-content .calculated {
       background-color: #2E2E2E;
       color: #A0A0A0;
       cursor: default;
@@ -245,15 +289,22 @@
   <div class="tabs">
     <div class="tab-button active" onclick="openTab('tab1')">
       <input type="text" id="tabName1" value="Tab 1" onchange="updateTabName('tab1')">
+      <button class="store-btn" onclick="storeTab('tab1')">Store</button>
     </div>
     <div class="tab-button" onclick="openTab('tab2')">
       <input type="text" id="tabName2" value="Tab 2" onchange="updateTabName('tab2')">
+      <button class="store-btn" onclick="storeTab('tab2')">Store</button>
     </div>
     <div class="tab-button" onclick="openTab('tab3')">
       <input type="text" id="tabName3" value="Tab 3" onchange="updateTabName('tab3')">
+      <button class="store-btn" onclick="storeTab('tab3')">Store</button>
     </div>
     <div class="tab-button" onclick="openTab('tab4')">
       <input type="text" id="tabName4" value="Tab 4" onchange="updateTabName('tab4')">
+      <button class="store-btn" onclick="storeTab('tab4')">Store</button>
+    </div>
+    <div class="tab-button" onclick="openTab('tab5')">
+      <input type="text" id="tabName5" value="Storage" onchange="updateTabName('tab5')" disabled>
     </div>
   </div>
 
@@ -354,505 +405,16 @@
         <button class="add-day-button" onclick="addNewDay('tab4')">Add New Day</button>
       </div>
     </div>
+    <div id="tab5" class="tab-content">
+      <div class="storage-content" id="storageContent"></div>
+    </div>
   </div>
 
-  <!-- Firebase SDK (using compat for global firebase object) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-  <script>
-    // Initialize Firebase with your config
-    const firebaseConfig = {
-      apiKey: "AIzaSyDuD-qTPsc9cBqqNVfO0Ur4wOaZnE4L6Cg",
-      authDomain: "campaigndashboard-e8b96.firebaseapp.com",
-      projectId: "campaigndashboard-e8b96",
-      storageBucket: "campaigndashboard-e8b96.firebasestorage.app",
-      messagingSenderId: "286098174856",
-      appId: "1:286098174856:web:752334f3abbb3c5c31003d"
-    };
-
-    let db;
-    let isFirebaseInitialized = false;
-    let username;
-
-    // Global variables (moved to the top)
-    let currentTab = 'tab1';
-    const tabs = ['tab1', 'tab2', 'tab3', 'tab4'];
-
-    // Get the current date in "Month Day" format (e.g., "May 27")
-    const today = new Date();
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentDate = `${monthNames[today.getMonth()]} ${today.getDate()}`;
-
-    // Initialize data (with or without Firebase)
-    const defaultDays = [
-      { date: currentDate, cost: 0, impressions: 0, clicks: 0, leads: 0, bookedCalls: 0, showedCalls: 0, conversions: 0, name: "", extraRows: [] }
-    ];
-
-    // Firebase initialization
-    try {
-      const app = firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      isFirebaseInitialized = true;
-      console.log("Firebase initialized successfully");
-    } catch (error) {
-      console.error("Firebase initialization error:", error.message);
-      alert(`Failed to initialize Firebase: ${error.message}. The dashboard will load with limited functionality.`);
-    }
-
-    // Get username from query parameter and load dashboard
-    const urlParams = new URLSearchParams(window.location.search);
-    username = urlParams.get('username') || 'defaultUser';
-    if (!urlParams.get('username')) {
-      alert('No username provided. Using defaultUser. Please access this dashboard with a username parameter.');
-    } else {
-      // Automatically initialize and load the dashboard
-      initializeDashboard();
-    }
-
-    function initializeDashboard() {
-      if (isFirebaseInitialized) {
-        // Load tab data and names with pre-initialization
-        tabs.forEach(tab => {
-          db.collection('users').doc(username).collection('tabs').doc(tab).get()
-            .then(doc => {
-              if (!doc.exists) {
-                const defaultData = { days: defaultDays, tabNames: { [tab]: `Tab ${tabs.indexOf(tab) + 1}` } };
-                return db.collection('users').doc(username).collection('tabs').doc(tab)
-                  .set(defaultData)
-                  .then(() => {
-                    console.log(`Initialized default data for ${username}/${tab}`);
-                    renderTabData(tab, defaultDays);
-                    document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = defaultData.tabNames[tab];
-                    if (tab === currentTab) {
-                      updateCumulative(tab);
-                    }
-                  })
-                  .catch(error => console.error(`Error setting initial data for ${username}/${tab}:`, error));
-              } else {
-                const data = doc.data();
-                if (data && data.days) {
-                  renderTabData(tab, data.days);
-                }
-                if (data && data.tabNames && data.tabNames[tab]) {
-                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = data.tabNames[tab];
-                } else {
-                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
-                }
-                if (tab === currentTab) {
-                  updateCumulative(tab);
-                }
-              }
-            })
-            .then(() => {
-              // Set up real-time listener
-              return db.collection('users').doc(username).collection('tabs').doc(tab)
-                .onSnapshot(doc => {
-                  const data = doc.data();
-                  if (data && data.days) {
-                    renderTabData(tab, data.days);
-                  }
-                  if (data && data.tabNames && data.tabNames[tab]) {
-                    document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = data.tabNames[tab];
-                  }
-                  if (tab === currentTab) {
-                    updateCumulative(tab);
-                  }
-                }, error => {
-                  console.error(`Snapshot error for ${username}/${tab}:`, error);
-                  renderTabData(tab, defaultDays);
-                  document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
-                  if (tab === currentTab) {
-                    updateCumulative(tab);
-                  }
-                });
-            })
-            .catch(error => console.error(`Error setting up tab data listener for ${username}/${tab}:`, error));
-        });
-      } else {
-        tabs.forEach(tab => {
-          renderTabData(tab, defaultDays);
-          document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).value = `Tab ${tabs.indexOf(tab) + 1}`;
-          if (tab === currentTab) {
-            updateCumulative(tab);
-          }
-        });
-      }
-    }
-
-    // Update tab name and save to Firebase
-    function updateTabName(tab) {
-      const tabIndex = tabs.indexOf(tab) + 1;
-      const input = document.getElementById(`tabName${tabIndex}`);
-      const newName = input.value.trim() || `Tab ${tabIndex}`;
-      input.value = newName;
-
-      if (isFirebaseInitialized) {
-        db.collection('users').doc(username).collection('tabs').doc(tab).get()
-          .then(doc => {
-            const data = doc.exists ? doc.data() : { days: defaultDays, tabNames: {} };
-            data.tabNames = data.tabNames || {};
-            data.tabNames[tab] = newName;
-            return db.collection('users').doc(username).collection('tabs').doc(tab)
-              .set(data, { merge: true })
-              .catch(error => console.error(`Error updating tab name for ${username}/${tab}:`, error));
-          })
-          .catch(error => console.error(`Error fetching tab data for ${username}/${tab}:`, error));
-      }
-    }
-
-    // Render table data for a tab
-    function renderTabData(tab, days) {
-      const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-      if (!tbody) {
-        console.error(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)} not found`);
-        return;
-      }
-      tbody.innerHTML = '';
-      days.forEach((day, index) => {
-        const row = document.createElement('tr');
-        const cpm = day.impressions ? ((day.cost / day.impressions) * 1000).toFixed(2) : '—';
-        const ctr = day.impressions ? ((day.clicks / day.impressions) * 100).toFixed(2) : '—';
-        const onChangeHandler = isFirebaseInitialized ? `updateFirestore('${tab}', ${index})` : `updateCumulative('${tab}')`;
-        const nameDisabled = day.bookedCalls === 0;
-        const nameValue = day.bookedCalls === 0 ? '' : (day.name || '');
-        const isEmpty = !day.cost && !day.impressions && !day.clicks && !day.leads && !day.bookedCalls && !day.showedCalls && !day.conversions && !day.name;
-        row.innerHTML = `
-          <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.date}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" id="costDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.cost || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" class="calculated" readonly value="${cpm}"></td>
-          <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.impressions || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" class="calculated" readonly value="${ctr}"></td>
-          <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.clicks || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.leads || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.bookedCalls || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.showedCalls || 0}" onchange="${onChangeHandler}"></td>
-          <td><input type="text" id="conversionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${day.conversions || 0}" onchange="${onChangeHandler}"></td>
-          <td>
-            ${nameDisabled ? '—' : `
-              <input type="text" id="nameDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${nameValue}" onchange="${onChangeHandler}">
-            `}
-          </td>
-          <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})" style="${isEmpty ? 'display: inline;' : 'display: none;'}">X</button></td>
-        `;
-        tbody.appendChild(row);
-
-        // Handle additional rows for Booked Calls > 1
-        if (day.bookedCalls > 1) {
-          for (let i = 1; i < day.bookedCalls; i++) {
-            const extraRow = document.createElement('tr');
-            const extraData = day.extraRows && day.extraRows[i - 1] ? day.extraRows[i - 1] : { showedCalls: 0, conversions: 0, name: '' };
-            extraRow.innerHTML = `
-              <td><hr class="derived-line"></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td><input type="text" id="extraShowedCallsDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.showedCalls || 0}" onchange="${onChangeHandler}"></td>
-              <td><input type="text" id="extraConversionsDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.conversions || 0}" onchange="${onChangeHandler}"></td>
-              <td>
-                <input type="text" id="extraNameDay${index + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${extraData.name || ''}" onchange="${onChangeHandler}">
-              </td>
-              <td></td>
-            `;
-            tbody.appendChild(extraRow);
-          }
-        }
-      });
-    }
-
-    // Update Firestore when an input changes
-    function updateFirestore(tab, dayIndex) {
-      if (!isFirebaseInitialized) return;
-
-      const date = document.getElementById(`dateDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value;
-      const cost = parseFloat(document.getElementById(`costDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const impressions = parseFloat(document.getElementById(`impressionsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const clicks = parseFloat(document.getElementById(`clicksDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const leads = parseFloat(document.getElementById(`leadsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const bookedCalls = parseFloat(document.getElementById(`bookedCallsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const showedCalls = parseFloat(document.getElementById(`showedCallsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const conversions = parseFloat(document.getElementById(`conversionsDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-      const name = bookedCalls === 0 ? '' : (document.getElementById(`nameDay${dayIndex + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || '');
-
-      db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
-        if (doc.exists) {
-          const days = doc.data().days;
-          if (days && days[dayIndex]) {
-            days[dayIndex] = {
-              date: date,
-              cost: cost,
-              impressions: impressions,
-              clicks: clicks,
-              leads: leads,
-              bookedCalls: bookedCalls,
-              showedCalls: showedCalls,
-              conversions: conversions,
-              name: bookedCalls >= 1 ? name : "",
-              extraRows: days[dayIndex].extraRows || []
-            };
-
-            if (bookedCalls <= 1) {
-              days[dayIndex].extraRows = [];
-            } else {
-              const newExtraRows = [];
-              for (let i = 1; i < bookedCalls; i++) {
-                const extraShowedCalls = parseFloat(document.getElementById(`extraShowedCallsDay${dayIndex + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value) || 0;
-                const extraConversions = parseFloat(document.getElementById(`extraConversionsDay${dayIndex + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value) || 0;
-                const extraName = document.getElementById(`extraNameDay${dayIndex + 1}_${i}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || '';
-                newExtraRows[i - 1] = {
-                  showedCalls: extraShowedCalls,
-                  conversions: extraConversions,
-                  name: extraName
-                };
-              }
-              days[dayIndex].extraRows = newExtraRows;
-            }
-
-            db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
-              .catch(error => console.error(`Firestore update error for ${username}/${tab}, day ${dayIndex}:`, error));
-          }
-        }
-      }).catch(error => console.error(`Firestore get error for ${username}/${tab}:`, error));
-
-      if (tab === currentTab) {
-        updateCumulative(tab);
-      }
-    }
-
-    // Delete a row
-    function deleteRow(tab, dayIndex) {
-      if (!isFirebaseInitialized) {
-        const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-        const rows = tbody.getElementsByTagName('tr');
-        if (rows[dayIndex]) {
-          tbody.removeChild(rows[dayIndex]);
-          updateCumulative(tab);
-        }
-        return;
-      }
-
-      db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
-        if (doc.exists) {
-          const days = doc.data().days || [];
-          if (days[dayIndex]) {
-            days.splice(dayIndex, 1);
-            db.collection('users').doc(username).collection('tabs').doc(tab).update({ days })
-              .catch(error => console.error(`Error deleting row for ${username}/${tab}, day ${dayIndex}:`, error));
-          }
-        }
-      }).catch(error => console.error(`Firestore get error for deleteRow ${username}/${tab}:`, error));
-    }
-
-    // Add a new day
-    function addNewDay(tab) {
-      if (!isFirebaseInitialized) {
-        const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-        const rows = tbody.getElementsByTagName('tr');
-        const lastDate = rows.length > 0 ? rows[rows.length - 1].cells[0].querySelector('input').value : currentDate;
-        const [month, day] = lastDate.split(' ');
-        const lastDayNum = parseInt(day) || 0;
-        const newDate = `${month} ${lastDayNum + 1}`;
-        const index = rows.length;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td><input type="text" class="date-input" id="dateDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="${newDate}" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" id="costDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" class="calculated" readonly value="—" title="Calculated as (Cost / Impressions) * 1000"></td>
-          <td><input type="text" id="impressionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" class="calculated" readonly value="—" title="Calculated as (Clicks / Impressions) * 100"></td>
-          <td><input type="text" id="clicksDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" id="leadsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" id="bookedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" id="showedCallsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td><input type="text" id="conversionsDay${index + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}" value="0" onchange="updateCumulative('${tab}')"></td>
-          <td>—</td>
-          <td><button class="delete-btn" onclick="deleteRow('${tab}', ${index})">X</button></td>
-        `;
-        tbody.appendChild(row);
-        updateCumulative(tab);
-        return;
-      }
-
-      db.collection('users').doc(username).collection('tabs').doc(tab).get()
-        .then(doc => {
-          const days = doc.exists ? (doc.data().days || []) : [];
-          const lastDate = days.length > 0 ? days[days.length - 1].date : currentDate;
-          const [month, day] = lastDate.split(' ');
-          const lastDayNum = parseInt(day) || 0;
-          const newDate = `${month} ${lastDayNum + 1}`;
-          const newDay = {
-            date: newDate,
-            cost: 0,
-            impressions: 0,
-            clicks: 0,
-            leads: 0,
-            bookedCalls: 0,
-            showedCalls: 0,
-            conversions: 0,
-            name: "",
-            extraRows: []
-          };
-          days.push(newDay);
-          return db.collection('users').doc(username).collection('tabs').doc(tab)
-            .set({ days }, { merge: true })
-            .then(() => {
-              console.log(`Successfully added new day for ${username}/${tab}: ${newDate}`);
-              renderTabData(tab, days);
-              if (tab === currentTab) {
-                updateCumulative(tab);
-              }
-            });
-        })
-        .catch(error => {
-          console.error(`Error adding new day for ${username}/${tab}:`, error);
-          alert(`Failed to add new day: ${error.message}. Please try again.`);
-        });
-    }
-
-    // Switch tabs
-    function openTab(tabName) {
-      currentTab = tabName;
-      const tabContents = document.getElementsByClassName('tab-content');
-      const tabButtons = document.getElementsByClassName('tab-button');
-      for (let i = 0; i < tabContents.length; i++) {
-        tabContents[i].classList.remove('active');
-        tabButtons[i].classList.remove('active');
-      }
-      document.getElementById(tabName).classList.add('active');
-      document.getElementsByClassName('tab-button')[tabs.indexOf(tabName)].classList.add('active');
-      updateCumulative(tabName);
-    }
-
-    // Update cumulative metrics
-    function updateCumulative(tab) {
-      if (isFirebaseInitialized) {
-        db.collection('users').doc(username).collection('tabs').doc(tab).get().then(doc => {
-          if (doc.exists) {
-            const days = doc.data().days || [];
-            let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
-            let hasData = false;
-
-            days.forEach(day => {
-              totalImpressions += day.impressions || 0;
-              totalClicks += day.clicks || 0;
-              totalLeads += day.leads || 0;
-              totalBookedCalls += day.bookedCalls || 0;
-              totalShowedCalls += day.showedCalls || 0;
-              totalCost += day.cost || 0;
-              totalConversions += day.conversions || 0;
-              if (day.extraRows) {
-                day.extraRows.forEach(extra => {
-                  totalShowedCalls += extra.showedCalls || 0;
-                  totalConversions += extra.conversions || 0;
-                });
-              }
-              if (day.cost || day.impressions || day.clicks || day.leads || day.bookedCalls || day.showedCalls || day.conversions) {
-                hasData = true;
-              }
-            });
-
-            const metricBoxes = document.getElementsByClassName('metric-box');
-            for (let box of metricBoxes) {
-              box.style.display = hasData ? 'flex' : 'none';
-            }
-
-            const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
-            const cpc = totalClicks ? (totalCost / totalClicks).toFixed(1) : 0;
-            const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(1) : 0;
-            const cpl = totalLeads ? (totalCost / totalLeads).toFixed(1) : 0;
-            const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(1) : 0;
-            const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
-            const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
-            const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
-            const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
-            const conversionCR = totalBookedCalls ? (totalConversions / totalBookedCalls * 100).toFixed(1) : 0;
-
-            document.getElementById('cumulativeClicks').innerText = totalClicks;
-            document.getElementById('cumulativeCTR').innerText = `${ctr}%`;
-            document.getElementById('cumulativeCPC').innerText = `$${cpc}`;
-            document.getElementById('cumulativeLeads').innerText = totalLeads;
-            document.getElementById('cumulativeCPL').innerText = `$${cpl}`;
-            document.getElementById('cumulativeConversionRate').innerText = `${conversionRate}%`;
-            document.getElementById('cumulativeBookedCalls').innerText = totalBookedCalls;
-            document.getElementById('cumulativeCostPerBookedCall').innerText = `$${costPerBookedCall}`;
-            document.getElementById('cumulativeBookingConversionRate').innerText = `${bookingConversionRate}%`;
-            document.getElementById('cumulativeShowedCalls').innerText = totalShowedCalls;
-            document.getElementById('cumulativeCostPerShowedCall').innerText = `$${costPerShowedCall}`;
-            document.getElementById('cumulativeShowRate').innerText = `${showRate}%`;
-            document.getElementById('cumulativeConversions').innerText = totalConversions;
-            document.getElementById('cumulativeCostPerConversion').innerText = `$${costPerConversion}`;
-            document.getElementById('cumulativeConversionCR').innerText = `${conversionCR}%`;
-          }
-        }).catch(error => console.error(`Cumulative update error for ${username}/${tab}:`, error));
-      } else {
-        const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-        const rows = tbody.getElementsByTagName('tr');
-        let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
-        let hasData = false;
-
-        for (let i = 0; i < rows.length; i++) {
-          const bookedCalls = parseFloat(document.getElementById(`bookedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalImpressions += parseFloat(document.getElementById(`impressionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalClicks += parseFloat(document.getElementById(`clicksDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalLeads += parseFloat(document.getElementById(`leadsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalBookedCalls += bookedCalls;
-          totalShowedCalls += parseFloat(document.getElementById(`showedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalCost += parseFloat(document.getElementById(`costDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-          totalConversions += parseFloat(document.getElementById(`conversionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) || 0;
-
-          if (document.getElementById(`costDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
-              document.getElementById(`impressionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
-              document.getElementById(`clicksDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
-              document.getElementById(`leadsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
-              document.getElementById(`bookedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
-              document.getElementById(`showedCallsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value ||
-              document.getElementById(`conversionsDay${i + 1}${tab.charAt(0).toUpperCase() + tab.slice(1)}`).value) {
-            hasData = true;
-          }
-
-          for (let j = 1; j < bookedCalls; j++) {
-            totalShowedCalls += parseFloat(document.getElementById(`extraShowedCallsDay${i + 1}_${j}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || 0);
-            totalConversions += parseFloat(document.getElementById(`extraConversionsDay${i + 1}_${j}${tab.charAt(0).toUpperCase() + tab.slice(1)}`)?.value || 0);
-          }
-        }
-
-        const metricBoxes = document.getElementsByClassName('metric-box');
-        for (let box of metricBoxes) {
-          box.style.display = hasData ? 'flex' : 'none';
-        }
-
-        const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
-        const cpc = totalClicks ? (totalCost / totalClicks).toFixed(1) : 0;
-        const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(1) : 0;
-        const cpl = totalLeads ? (totalCost / totalLeads).toFixed(1) : 0;
-        const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(1) : 0;
-        const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
-        const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
-        const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
-        const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
-        const conversionCR = totalBookedCalls ? (totalConversions / totalBookedCalls * 100).toFixed(1) : 0;
-
-        document.getElementById('cumulativeClicks').innerText = totalClicks;
-        document.getElementById('cumulativeCTR').innerText = `${ctr}%`;
-        document.getElementById('cumulativeCPC').innerText = `$${cpc}`;
-        document.getElementById('cumulativeLeads').innerText = totalLeads;
-        document.getElementById('cumulativeCPL').innerText = `$${cpl}`;
-        document.getElementById('cumulativeConversionRate').innerText = `${conversionRate}%`;
-        document.getElementById('cumulativeBookedCalls').innerText = totalBookedCalls;
-        document.getElementById('cumulativeCostPerBookedCall').innerText = `$${costPerBookedCall}`;
-        document.getElementById('cumulativeBookingConversionRate').innerText = `${bookingConversionRate}%`;
-        document.getElementById('cumulativeShowedCalls').innerText = totalShowedCalls;
-        document.getElementById('cumulativeCostPerShowedCall').innerText = `$${costPerShowedCall}`;
-        document.getElementById('cumulativeShowRate').innerText = `${showRate}%`;
-        document.getElementById('cumulativeConversions').innerText = totalConversions;
-        document.getElementById('cumulativeCostPerConversion').innerText = `$${costPerConversion}`;
-        document.getElementById('cumulativeConversionCR').innerText = `${conversionCR}%`;
-      }
-    }
-  </script>
+  <!-- Load JavaScript logic -->
+  <script src="dashboard.js"></script>
 </body>
 </html>
