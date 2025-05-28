@@ -580,62 +580,69 @@ function loadArchivedData() {
         storageContent.innerHTML = '';
         querySnapshot.forEach(doc => {
           const data = doc.data();
+          console.log(`Archived data for ${data.tabName}:`, data); // Debugging log
+          
+          // Check if data.days exists and is an array; if not, provide a fallback
+          const days = Array.isArray(data.days) && data.days.length > 0 ? data.days : [];
+          
           const details = document.createElement('details');
           details.innerHTML = `
-            <summary>${data.tabName} - ${data.timestamp}</summary>
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Cost ($)</th>
-                  <th>CPM</th>
-                  <th>Imp.</th>
-                  <th>CTR</th>
-                  <th>Clicks</th>
-                  <th>Leads</th>
-                  <th>Booked Calls</th>
-                  <th>Showed Calls</th>
-                  <th>Sales</th>
-                  <th>Name</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${data.days.map((day, index) => {
-                  const cpm = day.impressions ? `$${(day.cost / day.impressions * 1000).toFixed(2)}` : '—';
-                  const ctr = day.impressions ? `${(day.clicks / day.impressions * 100).toFixed(2)}%` : '—';
-                  return `
-                    <tr>
-                      <td>${day.date}</td>
-                      <td>${day.cost || 0}</td>
-                      <td><input type="text" class="calculated" readonly value="${cpm}"></td>
-                      <td>${day.impressions || 0}</td>
-                      <td><input type="text" class="calculated" readonly value="${ctr}"></td>
-                      <td>${day.clicks || 0}</td>
-                      <td>${day.leads || 0}</td>
-                      <td>${day.bookedCalls || 0}</td>
-                      <td>${day.showedCalls || 0}</td>
-                      <td>${day.conversions || 0}</td>
-                      <td>${day.name || '—'}</td>
-                    </tr>
-                    ${day.extraRows.map((extra, i) => `
+            <summary>${data.tabName || 'Unknown Tab'} - ${data.timestamp || 'Unknown Date'}</summary>
+            ${days.length > 0 ? `
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Cost ($)</th>
+                    <th>CPM</th>
+                    <th>Imp.</th>
+                    <th>CTR</th>
+                    <th>Clicks</th>
+                    <th>Leads</th>
+                    <th>Booked Calls</th>
+                    <th>Showed Calls</th>
+                    <th>Sales</th>
+                    <th>Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${days.map((day, index) => {
+                    const cpm = day.impressions ? `$${(day.cost / day.impressions * 1000).toFixed(2)}` : '—';
+                    const ctr = day.impressions ? `${(day.clicks / day.impressions * 100).toFixed(2)}%` : '—';
+                    return `
                       <tr>
-                        <td><hr class="derived-line"></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td>${extra.showedCalls || 0}</td>
-                        <td>${extra.conversions || 0}</td>
-                        <td>${extra.name || ''}</td>
+                        <td>${day.date || '—'}</td>
+                        <td>${day.cost || 0}</td>
+                        <td><input type="text" class="calculated" readonly value="${cpm}"></td>
+                        <td>${day.impressions || 0}</td>
+                        <td><input type="text" class="calculated" readonly value="${ctr}"></td>
+                        <td>${day.clicks || 0}</td>
+                        <td>${day.leads || 0}</td>
+                        <td>${day.bookedCalls || 0}</td>
+                        <td>${day.showedCalls || 0}</td>
+                        <td>${day.conversions || 0}</td>
+                        <td>${day.name || '—'}</td>
                       </tr>
-                    `).join('')}
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
+                      ${(Array.isArray(day.extraRows) ? day.extraRows : []).map((extra, i) => `
+                        <tr>
+                          <td><hr class="derived-line"></td>
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                          <td>${extra.showedCalls || 0}</td>
+                          <td>${extra.conversions || 0}</td>
+                          <td>${extra.name || ''}</td>
+                        </tr>
+                      `).join('')}
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            ` : '<p>No data available for this archive.</p>'}
           `;
           storageContent.appendChild(details);
         });
