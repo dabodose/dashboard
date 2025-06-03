@@ -328,7 +328,9 @@ function addNewDay(tab) {
       let days = doc.exists && doc.data().days ? doc.data().days : defaultDays;
       const lastDate = days.length > 0 ? days[days.length - 1].date : currentDate;
       const [month, day, year] = lastDate.split('/').map(Number);
-      const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
+      const dateObj = new Date(2000 + year, month - 1, day); // Temporary year for Date object
+      dateObj.setDate(dateObj.getDate() + 1); // Increment by 1 day
+      const newDate = `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getFullYear()).slice(-2)}`;
       const newDay = {
         date: newDate,
         cost: 0,
@@ -358,7 +360,9 @@ function addNewDay(tab) {
           const rows = tbody.getElementsByTagName('tr');
           const lastDate = rows.length > 0 ? rows[rows.length - 1].cells[0].querySelector('input').value : currentDate;
           const [month, day, year] = lastDate.split('/').map(Number);
-          const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
+          const dateObj = new Date(2000 + year, month - 1, day);
+          dateObj.setDate(dateObj.getDate() + 1);
+          const newDate = `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getFullYear()).slice(-2)}`;
           const index = rows.length;
           const row = document.createElement('tr');
           row.innerHTML = `
@@ -689,17 +693,17 @@ function loadArchivedData() {
                 <div class="metric-box leads-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Leads: <span id="archiveLeads${archiveId}">${totalLeads}</span></div>
                   <div>CPL: <span id="archiveCPL${archiveId}">$${cpl}</span></div>
-                  <div>CR: <span id="archiveConversionRate${archiveId}">${conversionRate}%</span></div>
+                  <div>LPCR: <span id="archiveConversionRate${archiveId}">${conversionRate}%</span></div>
                 </div>
                 <div class="metric-box booked-calls-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Booked Calls: <span id="archiveBookedCalls${archiveId}">${totalBookedCalls}</span></div>
                   <div>Cost: <span id="archiveCostPerBookedCall${archiveId}">$${costPerBookedCall}</span></div>
-                  <div>CR: <span id="archiveBookingConversionRate${archiveId}">${bookingConversionRate}%</span></div>
+                  <div>BookR: <span id="archiveBookingConversionRate${archiveId}">${bookingConversionRate}%</span></div>
                 </div>
                 <div class="metric-box showed-calls-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Showed Calls: <span id="archiveShowedCalls${archiveId}">${totalShowedCalls}</span></div>
                   <div>Cost: <span id="archiveCostPerShowedCall${archiveId}">$${costPerShowedCall}</span></div>
-                  <div>CR: <span id="archiveShowRate${archiveId}">${showRate}%</span></div>
+                  <div>ShowR: <span id="archiveShowRate${archiveId}">${showRate}%</span></div>
                 </div>
                 <div class="metric-box conversions-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Sales: <span id="archiveConversions${archiveId}">${totalConversions}</span></div>
