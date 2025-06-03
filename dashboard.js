@@ -20,7 +20,7 @@ const tabs = ['tab1', 'tab2', 'tab3', 'tab4', 'tab5'];
 const today = new Date();
 const currentDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${String(today.getFullYear()).toString().slice(-2)}`;
 
-// Default data with backward compatibility for date formats
+// Default data
 const defaultDays = [
   { date: currentDate, cost: 0, impressions: 0, clicks: 0, leads: 0, bookedCalls: 0, showedCalls: 0, conversions: 0, name: "", extraRows: [] }
 ];
@@ -77,24 +77,7 @@ function initializeDashboard() {
             loadArchivedData();
           } else {
             const data = doc.data();
-            let days = (data && data.days) ? data.days : defaultDays;
-            // Ensure backward compatibility for date format
-            days = days.map(day => {
-              if (!day.date.includes('/')) {
-                // Convert old "Month Day" format (e.g., "Jun 2") to "MM/DD/YY"
-                try {
-                  const dateObj = new Date(day.date + ` ${new Date().getFullYear()}`);
-                  return {
-                    ...day,
-                    date: `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getFullYear()).slice(-2)}`
-                  };
-                } catch (e) {
-                  console.error(`Failed to parse date for ${username}/${tab}: ${day.date}`, e);
-                  return { ...day, date: currentDate }; // Fallback to current date
-                }
-              }
-              return day;
-            });
+            const days = (data && data.days) ? data.days : defaultDays;
             renderTabData(tab, days);
             document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = (data && data.tabNames && data.tabNames[tab]) ? data.tabNames[tab] : `Tab ${tabs.indexOf(tab) + 1}`;
             if (tab === currentTab) {
@@ -117,23 +100,7 @@ function initializeDashboard() {
             db.collection('users').doc(username).collection('tabs').doc(tab)
               .onSnapshot(doc => {
                 const data = doc.data();
-                let days = (data && data.days) ? data.days : defaultDays;
-                // Ensure backward compatibility for date format in real-time updates
-                days = days.map(day => {
-                  if (!day.date.includes('/')) {
-                    try {
-                      const dateObj = new Date(day.date + ` ${new Date().getFullYear()}`);
-                      return {
-                        ...day,
-                        date: `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getFullYear()).slice(-2)}`
-                      };
-                    } catch (e) {
-                      console.error(`Failed to parse date in snapshot for ${username}/${tab}: ${day.date}`, e);
-                      return { ...day, date: currentDate };
-                    }
-                  }
-                  return day;
-                });
+                const days = (data && data.days) ? data.days : defaultDays;
                 renderTabData(tab, days);
                 if (data && data.tabNames && data.tabNames[tab]) {
                   document.getElementById(`tabName${tabs.indexOf(tab) + 1}`).textContent = data.tabNames[tab];
@@ -360,16 +327,8 @@ function addNewDay(tab) {
     .then(doc => {
       let days = doc.exists && doc.data().days ? doc.data().days : defaultDays;
       const lastDate = days.length > 0 ? days[days.length - 1].date : currentDate;
-      let dateObj;
-      try {
-        const [month, day, year] = lastDate.split('/').map(Number);
-        dateObj = new Date(2000 + year, month - 1, day); // Temporary year for Date object
-      } catch (e) {
-        console.error(`Failed to parse last date for ${username}/${tab}: ${lastDate}`, e);
-        dateObj = new Date(); // Fallback to current date
-      }
-      dateObj.setDate(dateObj.getDate() + 1); // Increment by 1 day
-      const newDate = `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getFullYear()).slice(-2)}`;
+      const [month, day, year] = lastDate.split('/').map(Number);
+      const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
       const newDay = {
         date: newDate,
         cost: 0,
@@ -397,22 +356,9 @@ function addNewDay(tab) {
           alert(`Failed to add new day: ${error.message}. Falling back to local update.`);
           const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
           const rows = tbody.getElementsByTagName('tr');
-          let newDate;
-          if (rows.length > 0) {
-            const lastDate = rows[rows.length - 1].cells[0].querySelector('input').value;
-            let dateObj;
-            try {
-              const [month, day, year] = lastDate.split('/').map(Number);
-              dateObj = new Date(2000 + year, month - 1, day);
-            } catch (e) {
-              console.error(`Failed to parse last date locally for ${tab}: ${lastDate}`, e);
-              dateObj = new Date();
-            }
-            dateObj.setDate(dateObj.getDate() + 1);
-            newDate = `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getFullYear()).slice(-2)}`;
-          } else {
-            newDate = currentDate;
-          }
+          const lastDate = rows.length > 0 ? rows[rows.length - 1].cells[0].querySelector('input').value : currentDate;
+          const [month, day, year] = lastDate.split('/').map(Number);
+          const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
           const index = rows.length;
           const row = document.createElement('tr');
           row.innerHTML = `
@@ -691,28 +637,11 @@ function loadArchivedData() {
           // Check if data.days exists and is an array; if not, provide a fallback
           const days = Array.isArray(data.days) && data.days.length > 0 ? data.days : [];
 
-          // Ensure backward compatibility for archived date format
-          const formattedDays = days.map(day => {
-            if (!day.date.includes('/')) {
-              try {
-                const dateObj = new Date(day.date + ` ${new Date().getFullYear()}`);
-                return {
-                  ...day,
-                  date: `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getFullYear()).slice(-2)}`
-                };
-              } catch (e) {
-                console.error(`Failed to parse archived date for ${data.tabName}: ${day.date}`, e);
-                return { ...day, date: currentDate };
-              }
-            }
-            return day;
-          });
-
           // Calculate cumulative metrics for this archived dataset
           let totalImpressions = 0, totalClicks = 0, totalLeads = 0, totalBookedCalls = 0, totalShowedCalls = 0, totalCost = 0, totalConversions = 0;
           let hasData = false;
 
-          formattedDays.forEach(day => {
+          days.forEach(day => {
             totalImpressions += day.impressions || 0;
             totalClicks += day.clicks || 0;
             totalLeads += day.leads || 0;
@@ -750,7 +679,7 @@ function loadArchivedData() {
               <span>${data.tabName || 'Unknown Tab'} - ${data.timestamp || 'Unknown Date'}</span>
               <button class="delete-archive-btn" onclick="deleteArchivedData('${archiveId}')">Delete</button>
             </summary>
-            ${formattedDays.length > 0 ? `
+            ${days.length > 0 ? `
               <div class="metrics-container">
                 <div class="metric-box ctr-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Clicks: <span id="archiveClicks${archiveId}">${totalClicks}</span></div>
@@ -760,17 +689,17 @@ function loadArchivedData() {
                 <div class="metric-box leads-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Leads: <span id="archiveLeads${archiveId}">${totalLeads}</span></div>
                   <div>CPL: <span id="archiveCPL${archiveId}">$${cpl}</span></div>
-                  <div>LPCR: <span id="archiveConversionRate${archiveId}">${conversionRate}%</span></div>
+                  <div>CR: <span id="archiveConversionRate${archiveId}">${conversionRate}%</span></div>
                 </div>
                 <div class="metric-box booked-calls-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Booked Calls: <span id="archiveBookedCalls${archiveId}">${totalBookedCalls}</span></div>
                   <div>Cost: <span id="archiveCostPerBookedCall${archiveId}">$${costPerBookedCall}</span></div>
-                  <div>BookR: <span id="archiveBookingConversionRate${archiveId}">${bookingConversionRate}%</span></div>
+                  <div>CR: <span id="archiveBookingConversionRate${archiveId}">${bookingConversionRate}%</span></div>
                 </div>
                 <div class="metric-box showed-calls-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Showed Calls: <span id="archiveShowedCalls${archiveId}">${totalShowedCalls}</span></div>
                   <div>Cost: <span id="archiveCostPerShowedCall${archiveId}">$${costPerShowedCall}</span></div>
-                  <div>ShowR: <span id="archiveShowRate${archiveId}">${showRate}%</span></div>
+                  <div>CR: <span id="archiveShowRate${archiveId}">${showRate}%</span></div>
                 </div>
                 <div class="metric-box conversions-box" style="display: ${hasData ? 'flex' : 'none'};">
                   <div>Sales: <span id="archiveConversions${archiveId}">${totalConversions}</span></div>
@@ -796,7 +725,7 @@ function loadArchivedData() {
                     </tr>
                   </thead>
                   <tbody>
-                    ${formattedDays.map((day, index) => {
+                    ${days.map((day, index) => {
                       const cpm = day.impressions ? `$${(day.cost / day.impressions * 1000).toFixed(2)}` : '—';
                       const ctr = day.impressions ? `${(day.clicks / day.impressions * 100).toFixed(2)}%` : '—';
                       return `
