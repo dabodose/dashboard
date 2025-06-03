@@ -16,10 +16,9 @@ let username;
 let currentTab = 'tab1';
 const tabs = ['tab1', 'tab2', 'tab3', 'tab4', 'tab5'];
 
-// Get the current date in "Month Day" format (e.g., "May 27")
+// Get the current date in "MM/DD/YY" format (e.g., "06/02/25")
 const today = new Date();
-const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const currentDate = `${monthNames[today.getMonth()]} ${today.getDate()}`;
+const currentDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${String(today.getFullYear()).toString().slice(-2)}`;
 
 // Default data
 const defaultDays = [
@@ -328,9 +327,8 @@ function addNewDay(tab) {
     .then(doc => {
       let days = doc.exists && doc.data().days ? doc.data().days : defaultDays;
       const lastDate = days.length > 0 ? days[days.length - 1].date : currentDate;
-      const [month, day] = lastDate.split(' ');
-      const lastDayNum = parseInt(day) || 0;
-      const newDate = `${month} ${lastDayNum + 1}`;
+      const [month, day, year] = lastDate.split('/').map(Number);
+      const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
       const newDay = {
         date: newDate,
         cost: 0,
@@ -359,9 +357,8 @@ function addNewDay(tab) {
           const tbody = document.getElementById(`tbody${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
           const rows = tbody.getElementsByTagName('tr');
           const lastDate = rows.length > 0 ? rows[rows.length - 1].cells[0].querySelector('input').value : currentDate;
-          const [month, day] = lastDate.split(' ');
-          const lastDayNum = parseInt(day) || 0;
-          const newDate = `${month} ${lastDayNum + 1}`;
+          const [month, day, year] = lastDate.split('/').map(Number);
+          const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
           const index = rows.length;
           const row = document.createElement('tr');
           row.innerHTML = `
@@ -450,16 +447,16 @@ function updateCumulative(tab) {
             box.style.display = hasData ? 'flex' : 'none';
           }
 
-          const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
-          const cpc = totalClicks ? (totalCost / totalClicks).toFixed(1) : 0;
-          const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(1) : 0;
-          const cpl = totalLeads ? (totalCost / totalLeads).toFixed(1) : 0;
-          const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(1) : 0;
-          const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
-          const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
-          const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
-          const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
-          const conversionCR = totalShowedCalls ? (totalConversions / totalShowedCalls * 100).toFixed(1) : 0;
+          const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(2) : 0.00;
+          const cpc = totalClicks ? (totalCost / totalClicks).toFixed(2) : 0.00;
+          const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(2) : 0.00;
+          const cpl = totalLeads ? (totalCost / totalLeads).toFixed(2) : 0.00;
+          const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(2) : 0.00;
+          const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(2) : 0.00;
+          const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(2) : 0.00;
+          const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(2) : 0.00;
+          const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(2) : 0.00;
+          const conversionCR = totalShowedCalls ? (totalConversions / totalShowedCalls * 100).toFixed(2) : 0.00;
 
           document.getElementById('cumulativeClicks').innerText = totalClicks;
           document.getElementById('cumulativeCTR').innerText = `${ctr}%`;
@@ -519,16 +516,16 @@ function updateCumulative(tab) {
       box.style.display = hasData ? 'flex' : 'none';
     }
 
-    const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
-    const cpc = totalClicks ? (totalCost / totalClicks).toFixed(1) : 0;
-    const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(1) : 0;
-    const cpl = totalLeads ? (totalCost / totalLeads).toFixed(1) : 0;
-    const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(1) : 0;
-    const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
-    const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
-    const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
-    const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
-    const conversionCR = totalShowedCalls ? (totalConversions / totalShowedCalls * 100).toFixed(1) : 0;
+    const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(2) : 0.00;
+    const cpc = totalClicks ? (totalCost / totalClicks).toFixed(2) : 0.00;
+    const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(2) : 0.00;
+    const cpl = totalLeads ? (totalCost / totalLeads).toFixed(2) : 0.00;
+    const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(2) : 0.00;
+    const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(2) : 0.00;
+    const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(2) : 0.00;
+    const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(2) : 0.00;
+    const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(2) : 0.00;
+    const conversionCR = totalShowedCalls ? (totalConversions / totalShowedCalls * 100).toFixed(2) : 0.00;
 
     document.getElementById('cumulativeClicks').innerText = totalClicks;
     document.getElementById('cumulativeCTR').innerText = `${ctr}%`;
@@ -663,16 +660,16 @@ function loadArchivedData() {
             }
           });
 
-          const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(1) : 0;
-          const cpc = totalClicks ? (totalCost / totalClicks).toFixed(1) : 0;
-          const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(1) : 0;
-          const cpl = totalLeads ? (totalCost / totalLeads).toFixed(1) : 0;
-          const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(1) : 0;
-          const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(1) : 0;
-          const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(1) : 0;
-          const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(1) : 0;
-          const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(1) : 0;
-          const conversionCR = totalShowedCalls ? (totalConversions / totalShowedCalls * 100).toFixed(1) : 0;
+          const ctr = totalImpressions ? (totalClicks / totalImpressions * 100).toFixed(2) : 0.00;
+          const cpc = totalClicks ? (totalCost / totalClicks).toFixed(2) : 0.00;
+          const conversionRate = totalClicks ? (totalLeads / totalClicks * 100).toFixed(2) : 0.00;
+          const cpl = totalLeads ? (totalCost / totalLeads).toFixed(2) : 0.00;
+          const bookingConversionRate = totalLeads ? (totalBookedCalls / totalLeads * 100).toFixed(2) : 0.00;
+          const costPerBookedCall = totalBookedCalls ? (totalCost / totalBookedCalls).toFixed(2) : 0.00;
+          const showRate = totalBookedCalls ? (totalShowedCalls / totalBookedCalls * 100).toFixed(2) : 0.00;
+          const costPerShowedCall = totalShowedCalls ? (totalCost / totalShowedCalls).toFixed(2) : 0.00;
+          const costPerConversion = totalConversions ? (totalCost / totalConversions).toFixed(2) : 0.00;
+          const conversionCR = totalShowedCalls ? (totalConversions / totalShowedCalls * 100).toFixed(2) : 0.00;
 
           const archiveId = doc.id; // Unique ID for this archive to avoid DOM conflicts
 
