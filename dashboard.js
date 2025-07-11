@@ -327,9 +327,19 @@ function addNewDay(tab) {
     .then(doc => {
       let days = doc.exists && doc.data().days ? doc.data().days : defaultDays;
       const lastDate = days.length > 0 ? days[days.length - 1].date : currentDate;
+      
+      // Parse last date (assuming MM/DD/YY format) and add one day
       const [month, day, year] = lastDate.split('/').map(Number);
-      const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
-      const newDay = {
+      const fullYear = year < 50 ? 2000 + year : 1900 + year; // Handle two-digit year
+      const dateObj = new Date(fullYear, month - 1, day);
+      dateObj.setDate(dateObj.getDate() + 1);
+      
+      const newMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const newDay = String(dateObj.getDate()).padStart(2, '0');
+      const newYear = String(dateObj.getFullYear()).slice(-2);
+      const newDate = `${newMonth}/${newDay}/${newYear}`;
+      
+      const newDayEntry = {
         date: newDate,
         cost: 0,
         impressions: 0,
@@ -341,7 +351,7 @@ function addNewDay(tab) {
         name: "",
         extraRows: []
       };
-      days.push(newDay);
+      days.push(newDayEntry);
       return db.collection('users').doc(username).collection('tabs').doc(tab)
         .set({ days }, { merge: true })
         .then(() => {
@@ -358,7 +368,14 @@ function addNewDay(tab) {
           const rows = tbody.getElementsByTagName('tr');
           const lastDate = rows.length > 0 ? rows[rows.length - 1].cells[0].querySelector('input').value : currentDate;
           const [month, day, year] = lastDate.split('/').map(Number);
-          const newDate = `${String((month % 12) + 1).padStart(2, '0')}/${String((day % 31) + 1).padStart(2, '0')}/${year}`;
+          const fullYear = year < 50 ? 2000 + year : 1900 + year; // Handle two-digit year
+          const dateObj = new Date(fullYear, month - 1, day);
+          dateObj.setDate(dateObj.getDate() + 1);
+          
+          const newMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const newDay = String(dateObj.getDate()).padStart(2, '0');
+          const newYear = String(dateObj.getFullYear()).slice(-2);
+          const newDate = `${newMonth}/${newDay}/${newYear}`;
           const index = rows.length;
           const row = document.createElement('tr');
           row.innerHTML = `
